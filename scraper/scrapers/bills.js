@@ -2,6 +2,7 @@ const { getBrowserAndPage, _wait } = require('../helper/scraper');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios'); // For direct downloads
+const { uploadIfNotExists, fileExists } = require('../helper/s3');
 // const { memberExists, addMember, uploadImage, getPartyByAbbreviation } = require('../../helper/supabase');
 
 const BASE_URL = 'https://pakistancode.gov.pk/english/';
@@ -108,11 +109,48 @@ const getBills = async() => {
                     const safeTitle = billInfo.title.replace(/[^a-z0-9\s-]/gi, '').replace(/[\s]+/g, '_');
                     const pdfFilename = `${year}_${safeTitle}.pdf`;
                     const pdfPath = path.join(DOWNLOAD_DIR, pdfFilename);
+                    const s3Key = `bills/${year}/${pdfFilename}`;
 
-                    // Check if file already exists
+                    // Check if file already exists in S3
+                    try {
+                        const existsInS3 = await fileExists(s3Key);
+                        if (existsInS3) {
+                            console.log(`  Skipping "${billInfo.title}" (already exists in S3: ${s3Key})`);
+                            continue;
+                        }
+                    } catch (s3CheckError) {
+                        console.error(`  Error checking if file exists in S3: ${s3CheckError.message}`);
+                        // Continue with local file check and download despite S3 check error
+                    }
+
+                    // Check if file already exists locally
                     if (fs.existsSync(pdfPath)) {
-                        console.log(`  Skipping "${billInfo.title}" (already downloaded: ${pdfFilename})`);
-                        continue;
+                        console.log(`  File exists locally "${billInfo.title}" (${pdfFilename}), uploading to S3 if needed`);
+
+                        try {
+                            const fileContent = fs.readFileSync(pdfPath);
+                            const uploadResult = await uploadIfNotExists(
+                                s3Key,
+                                fileContent,
+                                'application/pdf', {
+                                    Metadata: {
+                                        'bill-title': billInfo.title,
+                                        'bill-year': year,
+                                        'uploaded-date': new Date().toISOString()
+                                    }
+                                }
+                            );
+
+                            if (uploadResult) {
+                                console.log(`  Successfully uploaded existing local file to S3: ${s3Key}`);
+                            } else {
+                                console.log(`  File already exists in S3, skipped upload: ${s3Key}`);
+                            }
+                            continue; // Skip the download part
+                        } catch (s3UploadError) {
+                            console.error(`  Error uploading existing local file to S3: ${s3UploadError.message}`);
+                            continue; // Skip to next bill since we already have it locally
+                        }
                     }
 
                     console.log(`  Processing Bill: ${billInfo.title}`);
@@ -183,6 +221,32 @@ const getBills = async() => {
                                         });
                                     });
                                     console.log(`    Successfully downloaded ${pdfFilename}`);
+
+                                    // Upload to S3 after successful download
+                                    try {
+                                        const s3Key = `bills/${year}/${pdfFilename}`;
+                                        const fileContent = fs.readFileSync(pdfPath);
+
+                                        const uploadResult = await uploadIfNotExists(
+                                            s3Key,
+                                            fileContent,
+                                            'application/pdf', {
+                                                Metadata: {
+                                                    'bill-title': billInfo.title,
+                                                    'bill-year': year,
+                                                    'uploaded-date': new Date().toISOString()
+                                                }
+                                            }
+                                        );
+
+                                        if (uploadResult) {
+                                            console.log(`    Successfully uploaded to S3: ${s3Key}`);
+                                        } else {
+                                            console.log(`    File already exists in S3, skipped upload: ${s3Key}`);
+                                        }
+                                    } catch (s3Error) {
+                                        console.error(`    Error uploading to S3: ${s3Error.message}`);
+                                    }
                                 } catch (downloadError) {
                                     console.error(`    Error downloading ${pdfUrl} using axios:`, downloadError.message);
                                     // Attempt to remove potentially corrupt partial file
