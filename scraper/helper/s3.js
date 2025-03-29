@@ -15,7 +15,6 @@ const s3 = new AWS.S3();
 
 /**
  * Check if a file exists in S3 bucket
- * @param {string} bucketName - S3 bucket name
  * @param {string} key - S3 object key (file path)
  * @returns {Promise<boolean>} - Returns true if file exists, false otherwise
  */
@@ -36,7 +35,6 @@ async function fileExists(key) {
 
 /**
  * Upload a file to S3 if it doesn't already exist
- * @param {string} bucketName - S3 bucket name
  * @param {string} key - S3 object key (file path)
  * @param {Buffer|Uint8Array|Blob|string|ReadableStream} fileContent - File content to upload
  * @param {string} contentType - Content type of the file (e.g., 'image/jpeg', 'application/pdf')
@@ -46,7 +44,7 @@ async function fileExists(key) {
 async function uploadIfNotExists(key, fileContent, contentType = 'application/octet-stream', additionalParams = {}) {
     try {
         // Check if file already exists
-        const exists = await fileExists(bucketName, key);
+        const exists = await fileExists(key);
 
         if (exists) {
             console.log(`File ${key} already exists in bucket ${bucketName}`);
