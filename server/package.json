@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "@google/generative-ai": "^0.24.0",
+    "@langchain/google-genai": "^0.2.2",
     "@langchain/mongodb": "^0.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
