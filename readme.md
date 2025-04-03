@@ -1,0 +1,1 @@
+1. Blends "Cryo" (cold, futuristic) with "Onyx" (dark, strong), evoking a sleek, icy-tech aesthetic.
