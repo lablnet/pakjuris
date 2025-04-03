@@ -9,8 +9,9 @@ const config = {
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     PINECONE_API_KEY: process.env.PINECONE_API_KEY,
     PINECONE_INDEX_NAME: process.env.PINECONE_INDEX_NAME,
-    GEMINI_GENERATION_MODEL: process.env.GEMINI_GENERATION_MODEL || "gemini-1.5-flash-latest", // Use a fast model
+    GEMINI_GENERATION_MODEL: process.env.GEMINI_GENERATION_MODEL || "gemini-2.0-flash", // Use a fast model
     GEMINI_EMBEDDING_MODEL: process.env.GEMINI_EMBEDDING_MODEL || "text-embedding-004", // Or the specific model you use
+    PINECONE_SCORE_THRESHOLD: process.env.PINECONE_SCORE_THRESHOLD || 0.55,
 };
 
 // Basic validation
