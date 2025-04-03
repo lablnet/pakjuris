@@ -17,6 +17,9 @@ importers:
       '@langchain/mongodb':
         specifier: ^0.1.0
         version: 0.1.0(@langchain/core@0.3.43)
+      '@pinecone-database/pinecone':
+        specifier: ^5.1.1
+        version: 5.1.1
       '@supabase/supabase-js':
         specifier: ^2.47.3
         version: 2.47.3
@@ -143,6 +146,10 @@ packages:
   '@opentelemetry/api@1.9.0':
     resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
     engines: {node: '>=8.0.0'}
+
+  '@pinecone-database/pinecone@5.1.1':
+    resolution: {integrity: sha512-2JwnY28qb2AQi3fLlBfiXhV6e4ZEF0/0HNLdoFWoSPcty6Eu7+354M8mo/Hj0Hi7y3TCDkSCXq2dgmbcDSmCFQ==}
+    engines: {node: '>=18.0.0'}
 
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
@@ -1187,6 +1194,8 @@ snapshots:
 
   '@opentelemetry/api@1.9.0':
     optional: true
+
+  '@pinecone-database/pinecone@5.1.1': {}
 
   '@protobufjs/aspromise@1.1.2':
     optional: true
