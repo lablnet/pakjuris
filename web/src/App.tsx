@@ -4,7 +4,15 @@ import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.mjs`;
+
+// Create axios instance
+const api = axios.create({
+  baseURL: 'http://localhost:8000',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
 
 export default function App() {
   const [question, setQuestion] = useState('');
@@ -15,13 +23,18 @@ export default function App() {
   const [numPages, setNumPages] = useState<number | null>(null);
 
   const handleAsk = async () => {
-    const res = await axios.post('http://localhost:5000/query', { question });
-
-    setChatHistory((prev: { question: string, answer: any }[]) => [...prev, { question, answer: res.data }]);
-    setPdfUrl(res.data.pdfUrl);
-    setHighlightText(res.data.originalText);
-    setHighlightPage(res.data.pageNumber);
-    setQuestion('');
+    try {
+      const res = await api.post('/query', { question });
+      
+      setChatHistory((prev) => [...prev, { question, answer: res.data }]);
+      setPdfUrl(res.data.pdfUrl);
+      setHighlightText(res.data.originalText);
+      setHighlightPage(res.data.pageNumber);
+      setQuestion('');
+    } catch (error) {
+      console.error('Error making request:', error);
+      alert('Failed to get response. Please check console for details.');
+    }
   };
 
   return (
