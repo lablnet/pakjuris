@@ -203,7 +203,7 @@ Summary:`; // Let the model complete the summary
             pageNumber: metadata.pageNumber,
             summary: summary.trim(), // Trim whitespace from summary
             originalText: metadata.text,
-            pdfUrl: doc.pdfUrl || metadata.url || null, // Use MongoDB doc URL if found, fallback to metadata URL, then null
+            pdfUrl: "https://d2n6e94p3v1d3j.cloudfront.net/bills/2017/2017_Companies_Act_2017.pdf" || null, // Use MongoDB doc URL if found, fallback to metadata URL, then null
             matchScore: score // Include the similarity score
         });
 
