@@ -1,87 +1,89 @@
 require('dotenv').config();
 const express = require('express');
-const multer = require('multer');
 const cors = require('cors');
 const { MongoClient } = require('mongodb');
-const pdfParse = require('pdf-parse');
 const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
-const { MongoDBAtlasVectorSearch } = require("@langchain/mongodb");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-const upload = multer({ storage: multer.memoryStorage() });
+const client = new MongoClient(process.env.MONGODB_URI);
+const COLLECTION_NAME = process.env.MONGODB_COLLECTION;
+const DB_NAME = process.env.MONGODB_DB;
 
-const client = new MongoClient(process.env.MONGODB_ATLAS_URI);
+const embeddings = new GoogleGenerativeAIEmbeddings({
+    apiKey: process.env.GEMINI_API_KEY,
+});
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function initDB() {
     await client.connect();
-    return client.db(process.env.MONGODB_DB).collection(process.env.MONGODB_COLLECTION);
+    return client.db(DB_NAME).collection(COLLECTION_NAME);
 }
 
-// PDF Vectorization endpoint
-app.post('/vectorize', upload.single('pdf'), async(req, res) => {
-    const pdfBuffer = req.file.buffer;
-    const pdfData = await pdfParse(pdfBuffer);
-
-    const collection = await initDB();
-
-    const embeddings = new GoogleGenerativeAIEmbeddings({
-        apiKey: process.env.GEMINI_API_KEY,
-    });
-
-    const docs = [{
-        content: pdfData.text,
-        metadata: { filename: req.file.originalname }
-    }];
-
-    const vectorStore = new MongoDBAtlasVectorSearch(embeddings, {
-        collection,
-        indexName: "default",
-        textKey: "content",
-        embeddingKey: "embedding",
-    });
-
-    await vectorStore.addDocuments(docs);
-
-    res.json({ message: 'PDF successfully vectorized.' });
-});
-
-// Question answering endpoint
 app.post('/query', async(req, res) => {
     const { question } = req.body;
-
-    const embeddings = new GoogleGenerativeAIEmbeddings({
-        apiKey: process.env.GEMINI_API_KEY,
-    });
-
     const collection = await initDB();
 
-    const vectorStore = new MongoDBAtlasVectorSearch(embeddings, {
-        collection,
-        indexName: "default",
-        textKey: "content",
-        embeddingKey: "embedding",
-    });
+    const queryEmbedding = await embeddings.embedQuery(question);
 
-    const retriever = vectorStore.asRetriever();
+    // Vector search query to MongoDB Atlas
+    const results = await collection.aggregate([{
+            $vectorSearch: {
+                index: "vector_index",
+                path: "pageEmbeddings.embedding",
+                queryVector: queryEmbedding,
+                numCandidates: 100,
+                limit: 1
+            }
+        },
+        {
+            $project: {
+                title: 1,
+                year: 1,
+                url: "$pdfUrl",
+                pageEmbeddings: 1,
+                pdfContent: 1
+            }
+        }
+    ]).toArray();
 
-    const relevantDocs = await retriever.getRelevantDocuments(question);
+    if (results.length === 0) {
+        return res.status(404).json({ message: "No relevant results found." });
+    }
 
-    // Simple summarization using Gemini API
-    const { GoogleGenerativeAI } = require("@google/generative-ai");
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const bestDoc = results[0];
+    const bestPage = bestDoc.pageEmbeddings[0]; // Best matching page
 
-    const prompt = `Summarize this document excerpt briefly in simple terms for the question: "${question}"\n\n${relevantDocs[0].pageContent}`;
+    const prompt = `
+    You are a helpful assistant specialized in Pakistani law. 
+    Answer the following question clearly, accurately, and neutrally based on the provided text.
+    
+    Question: "${question}"
+    
+    Document Title: "${bestDoc.title} (${bestDoc.year})"
+    Page Number: ${bestPage.pageNumber}
 
+    Excerpt from Document:
+    "${bestPage.text}"
+
+    Provide a brief, neutral summary without any negative commentary.
+    `;
+
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     const result = await model.generateContent(prompt);
     const summary = result.response.text();
 
     res.json({
-        filename: relevantDocs[0].metadata.filename,
-        summary: summary,
-        originalText: relevantDocs[0].pageContent
+        title: bestDoc.title,
+        year: bestDoc.year,
+        pageNumber: bestPage.pageNumber,
+        summary,
+        originalText: bestPage.text,
+        pdfUrl: bestDoc.url
     });
 });
 
