@@ -17,6 +17,9 @@ importers:
       '@langchain/mongodb':
         specifier: ^0.1.0
         version: 0.1.0(@langchain/core@0.3.43(openai@4.91.1(zod@3.24.2)))
+      '@pinecone-database/pinecone':
+        specifier: ^5.1.1
+        version: 5.1.1
       cors:
         specifier: ^2.8.5
         version: 2.8.5
@@ -82,6 +85,10 @@ packages:
 
   '@mongodb-js/saslprep@1.2.1':
     resolution: {integrity: sha512-1NCa8GsZ+OFLTw5KkKQS22wLS+Rs+y02sgkhr99Pm4OSXtSDHCJyq0uscPF0qA86ipGYH4PwtC2+a8Y4RKkCcg==}
+
+  '@pinecone-database/pinecone@5.1.1':
+    resolution: {integrity: sha512-2JwnY28qb2AQi3fLlBfiXhV6e4ZEF0/0HNLdoFWoSPcty6Eu7+354M8mo/Hj0Hi7y3TCDkSCXq2dgmbcDSmCFQ==}
+    engines: {node: '>=18.0.0'}
 
   '@types/node-fetch@2.6.12':
     resolution: {integrity: sha512-8nneRWKCg3rMtF69nLQJnOYUcbafYeFSjqkw3jCRLsqkWFlHaoQrr5mXmofFGOx3DKn7UfmBMyov8ySvLRVldA==}
@@ -948,6 +955,8 @@ snapshots:
   '@mongodb-js/saslprep@1.2.1':
     dependencies:
       sparse-bitfield: 3.0.3
+
+  '@pinecone-database/pinecone@5.1.1': {}
 
   '@types/node-fetch@2.6.12':
     dependencies:
