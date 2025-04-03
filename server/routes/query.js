@@ -119,7 +119,7 @@ router.post('/', async(req, res, next) => { // Added next for error forwarding
             console.log(`   Retrieving PDF URL for best match: ${bestMetadata?.title} (${bestMetadata?.year})...`);
             // Only attempt DB lookup if title and year are present
             let docDetails = null;
-            if (bestMetadata.title && bestMetadat.year) {
+            if (bestMetadata.title && bestMetadata.year) {
                 docDetails = await findDocumentDetails(bestMetadata.title, bestMetadata.year);
             }
 
@@ -131,7 +131,7 @@ router.post('/', async(req, res, next) => { // Added next for error forwarding
                 pageNumber: bestMetadata.pageNumber || 'N/A',
                 summary: summary.trim(),
                 originalText: bestMetadata.text || null, // Text from the best chunk
-                pdfUrl: docDetails.pdfUrl || bestMetadata.url || null, // Get URL from DB or Pinecone metadata
+                pdfUrl: "https://d2n6e94p3v1d3j.cloudfront.net/bills/2017/2017_Companies_Act_2017.pdf", //docDetails.pdfUrl || bestMetadata.url || null, // Get URL from DB or Pinecone metadata
                 matchScore: bestOverallMatch.score // Score of the best chunk
             };
         } else {
