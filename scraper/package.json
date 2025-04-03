@@ -14,7 +14,9 @@
         "@supabase/supabase-js": "^2.47.3",
         "aws-sdk": "^2.1692.0",
         "axios": "^1.8.4",
-        "dotenv": "^16.4.5",
+        "dotenv": "^16.4.7",
+        "firebase-admin": "^13.2.0",
+        "mongodb": "^6.15.0",
         "playwright": "^1.48.2"
     },
     "engines": {
