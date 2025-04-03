@@ -4,10 +4,10 @@
 // Otherwise, rely on careful string parsing.
 
 const INTENT_CLASSIFICATION_PROMPT = (question) => `
-Analyze the user's question and classify its intent into ONE of the following categories:
-- GREETING: User is just saying hello, thanks, etc.
-- LEGAL_QUERY: User is asking a specific question about Pakistani law, legal concepts, acts, or procedures.
-- CLARIFICATION_NEEDED: User's question is too vague, ambiguous, lacks context, or requires more information to be answered meaningfully (e.g., "Tell me about the law", "What about section 5?").
+Analyze the user's question about Pakistani Law and classify its intent into ONE of the following categories:
+- GREETING: User is just saying hello, thanks, goodbye, etc. (e.g., "Hi", "Thank you")
+- LEGAL_QUERY: User asks a specific question about Pakistani law, legal concepts, acts, sections, procedures, or requests information about a specific legal entity mentioned. (e.g., "What is bail?", "Explain section 10 of Companies Act 2017", "Tell me about prohibited company names")
+- CLARIFICATION_NEEDED: User's question is too vague, ambiguous, lacks a specific subject, or mentions a concept without asking a question about it. (e.g., "What about the law?", "Section 5?", "Companies Act 2017." <- statement, not a question)
 - IRRELEVANT: User's question is off-topic, unrelated to Pakistani law, or nonsensical.
 
 User Question: "${question}"
