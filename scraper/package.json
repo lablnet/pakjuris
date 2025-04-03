@@ -11,11 +11,13 @@
     "author": "Muhammad Umer Farooq",
     "license": "ISC",
     "dependencies": {
+        "@langchain/core": "^0.3.43",
         "@langchain/google-genai": "^0.2.2",
         "@langchain/mongodb": "^0.1.0",
         "@supabase/supabase-js": "^2.47.3",
         "aws-sdk": "^2.1692.0",
         "axios": "^1.8.4",
+        "documents": "link:@langchain/core/documents",
         "dotenv": "^16.4.7",
         "firebase-admin": "^13.2.0",
         "mongodb": "^6.15.0",
