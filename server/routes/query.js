@@ -4,6 +4,7 @@ const geminiService = require('../services/gemini');
 const pineconeService = require('../services/pinecone');
 const { findDocumentDetails } = require('../services/mongo'); // Only need specific function
 const prompts = require('../utils/promptTemplates');
+const config = require('../config/env');
 
 const router = express.Router();
 
@@ -56,10 +57,18 @@ router.post('/', async(req, res, next) => { // Added next for error forwarding
         }
         console.log(`   Total matches found across all queries: ${allMatches.length}`);
 
+        // 5a. --- <<< Metadata Filtering (from previous step) >>> ---
+        let filteredMatches = allMatches;
+        console.log(JSON.stringify(filteredMatches, null, 2));
+        // 5b. --- <<< NEW: Filter by Score Threshold >>> ---
+        const countBeforeScoreFilter = filteredMatches.length;
+        filteredMatches = filteredMatches.filter(match => match.score >= config.PINECONE_SCORE_THRESHOLD);
+        console.log(`   Filtered matches by score >= ${config.PINECONE_SCORE_THRESHOLD}. Kept ${filteredMatches.length} of ${countBeforeScoreFilter}.`);
+        // --- <<< END NEW SCORE FILTER >>> ---
 
         // 6. De-duplicate, Rank, and Select Top Chunks
         const uniqueMatchesMap = new Map();
-        allMatches.forEach(match => {
+        filteredMatches.forEach(match => {
             // Ensure metadata and text exist before creating key
             const meta = match.metadata || {};
             const textSample = meta.text.substring(0, 50) || 'notext';
