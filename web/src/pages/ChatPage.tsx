@@ -4,6 +4,8 @@ import ChatMessage from '../components/ChatMessage';
 import ChatInput from '../components/ChatInput';
 import StatusDisplay from '../components/StatusDisplay';
 import useChat from '../hooks/useChat';
+import useSSE from '../hooks/useSSE';
+import usePDFViewer from '../hooks/usePDFViewer';
 
 export default function ChatPage() {
   const {
@@ -11,7 +13,18 @@ export default function ChatPage() {
     setQuestion,
     chatHistory,
     isLoading,
+    handleAsk,
+    chatEndRef
+  } = useChat();
+  
+  const {
     currentStatus,
+    isConnected,
+    connectionError,
+    reconnect
+  } = useSSE();
+  
+  const {
     currentPdfUrl,
     currentHighlightText,
     currentHighlightPage,
@@ -19,13 +32,27 @@ export default function ChatPage() {
     pdfError,
     onDocumentLoadSuccess,
     onDocumentLoadError,
-    handleAsk,
-    chatEndRef
-  } = useChat();
+  } = usePDFViewer();
 
   return (
     <MainLayout>
       <div className="flex flex-col p-4 gap-4 h-full">
+        {/* Connection Status Bar - only show if disconnected */}
+        {!isConnected && (
+          <div className="bg-yellow-100 text-amber-800 px-4 py-2 rounded-lg text-sm flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="text-amber-600">⚠️</span>
+              <span>Status connection lost</span>
+            </div>
+            <button 
+              onClick={reconnect}
+              className="bg-amber-200 hover:bg-amber-300 text-amber-800 px-3 py-1 rounded text-xs font-medium"
+            >
+              Reconnect
+            </button>
+          </div>
+        )}
+        
         {/* Chat History Area */}
         <div className="flex-grow overflow-y-auto bg-gray-50 rounded-2xl p-4 space-y-6">
           <div className="min-h-full">
@@ -52,7 +79,12 @@ export default function ChatPage() {
 
             {/* Status Updates */}
             {isLoading && currentStatus && (
-              <StatusDisplay status={currentStatus} />
+              <StatusDisplay 
+                status={currentStatus} 
+                isConnected={isConnected}
+                connectionError={connectionError}
+                onReconnect={reconnect}
+              />
             )}
 
             {/* Loader */}
@@ -77,6 +109,7 @@ export default function ChatPage() {
           setQuestion={setQuestion}
           handleAsk={handleAsk}
           isLoading={isLoading}
+          disabled={!isConnected}
         />
       </div>
     </MainLayout>

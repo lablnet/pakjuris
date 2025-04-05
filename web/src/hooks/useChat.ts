@@ -19,8 +19,10 @@ const updateAuthToken = async () => {
     const user = auth.currentUser;
     if (user) {
       const token = await user.getIdToken(true);
+      // Always use Bearer format for Authorization header
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      localStorage.setItem('authToken', token);
+      // Store formatted token for other components to use
+      localStorage.setItem('authToken', `Bearer ${token}`);
       return token;
     } else {
       delete api.defaults.headers.common['Authorization'];

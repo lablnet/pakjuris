@@ -6,59 +6,82 @@ interface ChatInputProps {
   setQuestion: (question: string) => void;
   handleAsk: () => void;
   isLoading: boolean;
+  disabled?: boolean;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
   question,
   setQuestion,
   handleAsk,
-  isLoading
+  isLoading,
+  disabled = false
 }) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (question.trim() && !isLoading && !disabled) {
+      handleAsk();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (question.trim() && !isLoading && !disabled) {
+        handleAsk();
+      }
+    }
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex-shrink-0 bg-white rounded-2xl p-3 sm:p-4 shadow-lg border border-gray-100"
+    <motion.form 
+      onSubmit={handleSubmit}
+      className={`
+        flex items-center gap-2 
+        bg-white p-2 rounded-xl shadow-md border border-gray-200
+        transition-all duration-300
+        ${disabled ? 'opacity-70' : ''}
+      `}
     >
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-        <div className="flex-grow relative">
-          <input
-            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-3 sm:px-4 pr-10 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Ask about Pakistani laws..."
-            onKeyPress={(e) => e.key === 'Enter' && handleAsk()}
-            disabled={isLoading}
-          />
-          {isLoading && (
+      <textarea
+        value={question}
+        onChange={(e) => setQuestion(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={disabled ? "Reconnect to continue..." : "Ask a question about Pakistani law..."}
+        className="flex-grow p-2 border-none focus:ring-0 focus:outline-none resize-none max-h-32 rounded-lg"
+        rows={1}
+        disabled={isLoading || disabled}
+      />
+      <button
+        type="submit"
+        disabled={!question.trim() || isLoading || disabled}
+        className={`
+          p-3 rounded-lg
+          ${!question.trim() || isLoading || disabled
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-lg'}
+          transition-all duration-300
+        `}
+      >
+        {isLoading ? (
+          <span className="flex items-center justify-center w-6 h-6">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2"
-            >
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-            </motion.div>
-          )}
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={`
-            py-3 px-6 rounded-xl font-medium text-white shadow-md text-sm sm:text-base
-            ${isLoading
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
-            }
-            transition-all duration-200
-            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 w-full sm:w-auto
-          `}
-          onClick={handleAsk}
-          disabled={!question.trim() || isLoading}
-        >
-          {isLoading ? 'Processing...' : 'Ask'}
-        </motion.button>
-      </div>
-    </motion.div>
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              className="w-4 h-4 border-2 border-white rounded-full border-t-transparent"
+            />
+          </span>
+        ) : (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="w-6 h-6"
+          >
+            <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+          </svg>
+        )}
+      </button>
+    </motion.form>
   );
 };
 
