@@ -1,17 +1,18 @@
 // routes/query.js
 const express = require('express');
 const geminiService = require('../services/gemini');
+const openaiService = require('../services/openai');
 const pineconeService = require('../services/pinecone');
-const { findDocumentDetails } = require('../services/mongo'); // Only need specific function
+const { findDocumentDetails } = require('../services/mongo');
 const prompts = require('../utils/promptTemplates');
 const config = require('../config/env');
 
 const router = express.Router();
 
-const TOP_K_RESULTS = 3; // Number of results to retrieve per search query
-const FINAL_CONTEXT_CHUNKS = 3; // Number of unique chunks to send for summarization
+const TOP_K_RESULTS = 3;
+const FINAL_CONTEXT_CHUNKS = 3;
 
-router.post('/', async(req, res, next) => { // Added next for error forwarding
+router.post('/', async(req, res, next) => {
     try {
         // 1. Validate Input
         if (!req.body || !req.body.question || typeof req.body.question !== 'string' || req.body.question.trim().length === 0) {
@@ -51,7 +52,7 @@ router.post('/', async(req, res, next) => { // Added next for error forwarding
         let allMatches = [];
         for (const query of searchQueries) {
             console.log(`   Processing search query: "${query}"`);
-            const queryVector = await geminiService.getEmbedding(query);
+            const queryVector = await openaiService.getEmbedding(query);
             const matches = await pineconeService.queryPinecone(queryVector, TOP_K_RESULTS);
             allMatches.push(...matches); // Collect all matches
         }

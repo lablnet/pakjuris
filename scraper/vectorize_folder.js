@@ -4,10 +4,8 @@ const path = require('path');
 const pdfParse = require('pdf-parse');
 const { MongoClient } = require('mongodb');
 const { Pinecone } = require('@pinecone-database/pinecone');
-const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters"); // Using Langchain splitter as in your example
-
-// --- Azure OpenAI Imports ---
-const { OpenAI } = require("openai"); // --- End Azure OpenAI Imports ---
+const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
+const { OpenAI } = require("openai");
 
 // --- Config ---
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -15,13 +13,10 @@ const COLLECTION_NAME = process.env.MONGODB_COLLECTION;
 const DB_NAME = process.env.MONGODB_DB;
 const PINECONE_API_KEY = process.env.PINECONE_API_KEY;
 const PINECONE_INDEX_NAME = process.env.PINECONE_INDEX_NAME;
-
-// --- Azure OpenAI Config ---
 const AZURE_OPENAI_ENDPOINT = process.env.AZURE_OPENAI_ENDPOINT;
 const AZURE_OPENAI_API_KEY = process.env.AZURE_OPENAI_API_KEY;
 const AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME;
 const AZURE_API_VERSION = process.env.AZURE_API_VERSION;
-// --- End Azure OpenAI Config ---
 
 // Basic validation for essential ENV variables
 if (!MONGODB_URI || !COLLECTION_NAME || !DB_NAME || !PINECONE_API_KEY || !PINECONE_INDEX_NAME || !AZURE_OPENAI_ENDPOINT || !AZURE_OPENAI_API_KEY || !AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME) {
@@ -30,18 +25,16 @@ if (!MONGODB_URI || !COLLECTION_NAME || !DB_NAME || !PINECONE_API_KEY || !PINECO
 }
 
 const mongoClient = new MongoClient(MONGODB_URI);
-const pinecone = new Pinecone({ apiKey: PINECONE_API_KEY }); // Pass API key here
+const pinecone = new Pinecone({ apiKey: PINECONE_API_KEY });
 const pineconeIndex = pinecone.Index(PINECONE_INDEX_NAME);
 
-// --- Initialize Azure OpenAI Client (Matching the Example Pattern) ---
-// This tells the OpenAI library it's talking to Azure specifically
 const azureClient = new OpenAI({
     apiKey: AZURE_OPENAI_API_KEY,
-    baseURL: `${AZURE_OPENAI_ENDPOINT}openai/deployments/${AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME}`, // Construct specific base URL for the deployment
+    baseURL: `${AZURE_OPENAI_ENDPOINT}openai/deployments/${AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME}`,
     defaultQuery: { "api-version": AZURE_API_VERSION },
-    defaultHeaders: { "api-key": AZURE_OPENAI_API_KEY }, // Required for Azure API Key auth
+    defaultHeaders: { "api-key": AZURE_OPENAI_API_KEY },
 });
-// --- End Azure OpenAI Client Init ---
+
 
 const CHUNK_SIZE = 800; // Target size in characters
 const CHUNK_OVERLAP = 80; // Overlap between chunks
