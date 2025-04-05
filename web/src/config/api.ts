@@ -1,7 +1,5 @@
 const config = {
-  apiBaseUrl: import.meta.env.PROD 
-    ? 'https://us-central1-pakjuris-fa475.cloudfunctions.net/api'
-    : 'http://localhost:5001/pakjuris-fa475/us-central1/api',
+  apiBaseUrl: "https://us-central1-pakjuris-fa475.cloudfunctions.net/api",
   
   // Generate a unique client ID for the user session
   getClientId: () => `client-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
