@@ -48,10 +48,24 @@ const useChat = () => {
     clearPDFViewer
   } = usePDFViewer();
 
-  // Scroll to bottom of chat on new message
+  // Improved scroll to bottom effect that handles edge cases better
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatHistory]);
+    const scrollToBottom = () => {
+      if (chatEndRef.current) {
+        // Use a small timeout to ensure rendering is complete
+        setTimeout(() => {
+          chatEndRef.current?.scrollIntoView({ 
+            behavior: "smooth",
+            block: "end" 
+          });
+        }, 100);
+      }
+    };
+
+    scrollToBottom();
+    
+    // Also scroll when loading state changes or status updates
+  }, [chatHistory, isLoading, currentStatus]);
 
   const handleAsk = async () => {
     if (!question.trim() || isLoading) return;
