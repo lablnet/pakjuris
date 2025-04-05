@@ -14,6 +14,7 @@ import About from './pages/About';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
+import Profile from './pages/Profile';
 
 // Import components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -35,6 +36,7 @@ export default function App() {
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/chat" element={<ChatPage />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
           
           <Route path="*" element={<Navigate to="/" replace />} />
