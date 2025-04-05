@@ -8,6 +8,7 @@ const mongoService = require('./services/mongo');
 const pineconeService = require('./services/pinecone');
 const requestLogger = require('./middleware/requestLogger');
 const errorHandler = require('./middleware/errorHandler');
+const authMiddleware = require('./middleware/auth');
 const queryRoutes = require('./routes/query'); // Import the router
 const { router: statusRoutes } = require('./routes/status'); // Import the SSE router
 
@@ -26,6 +27,9 @@ app.use(express.json());
 
 // Custom request logger
 app.use(requestLogger);
+
+// Authentication middleware
+app.use(authMiddleware);
 
 // --- Routes ---
 // Health check endpoint

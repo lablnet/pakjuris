@@ -17,6 +17,14 @@ const FINAL_CONTEXT_CHUNKS = 3;
 // Simple POST route for query - no complex URL patterns
 router.post('/', async(req, res, next) => {
     try {
+        // Check if user is authenticated
+        const user = req.user;
+        if (user) {
+            console.log(`Processing query for authenticated user: ${user.email || user.uid}`);
+        } else {
+            console.log('Processing query for unauthenticated user');
+        }
+
         // Get clientId from request if available
         const clientId = req.body.clientId;
 

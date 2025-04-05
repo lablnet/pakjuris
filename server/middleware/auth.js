@@ -3,31 +3,36 @@ const admin = require('firebase-admin');
 
 /**
  * Authentication middleware that verifies Firebase ID tokens
- * Sets req.user if authentication is successful
+ * Sets req.user if authentication is successful, otherwise req.user is null
  */
 async function authMiddleware(req, res, next) {
-    // Get the Authorization header
-    const authHeader = req.headers.authorization;
+    let token = null;
 
-    // Skip auth check if no token provided (we'll handle authorization in routes)
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        console.log('No auth token provided, continuing without authentication');
+    // Check for token in Authorization header (preferred method)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+    }
+    // Allow fallback to token in query parameter (for SSE or similar cases)
+    else if (req.query && req.query.token && req.query.token.startsWith('Bearer ')) {
+        token = req.query.token.substring(7);
+    }
+
+    if (!token) {
+        // Continue without authentication
+        req.user = null;
         return next();
     }
 
-    // Extract the token
-    const idToken = authHeader.split('Bearer ')[1];
-
     try {
-        // Verify the token
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        // Verify the Firebase token
+        const decodedToken = await admin.auth().verifyIdToken(token);
         req.user = decodedToken;
         console.log(`Authenticated user: ${decodedToken.email || decodedToken.uid}`);
         next();
     } catch (error) {
         console.error('Error verifying auth token:', error);
-        // Don't return 401 immediately, let route handlers decide
-        // whether authentication is required for specific routes
+        // Don't return 401, just set req.user to null and continue
         req.user = null;
         next();
     }
