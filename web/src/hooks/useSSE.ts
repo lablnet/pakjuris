@@ -13,8 +13,11 @@ const useSSE = () => {
   const clientIdRef = useRef<string>(`client-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
 
   useEffect(() => {
+    // API base URL from the same place axios is using it
+    const apiBase = 'https://us-central1-pakjuris-fa475.cloudfunctions.net/api';
+    
     // Create EventSource connection
-    const eventSource = new EventSource(`http://localhost:8000/status/${clientIdRef.current}`);
+    const eventSource = new EventSource(`${apiBase}/status/${clientIdRef.current}`);
     eventSourceRef.current = eventSource;
 
     // Handle incoming messages

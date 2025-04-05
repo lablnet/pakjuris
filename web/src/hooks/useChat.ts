@@ -5,7 +5,7 @@ import usePDFViewer from './usePDFViewer';
 
 // Create axios instance
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: 'https://us-central1-pakjuris-fa475.cloudfunctions.net/api',
   headers: {
     'Content-Type': 'application/json'
   }
