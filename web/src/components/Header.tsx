@@ -1,7 +1,21 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { logoutUser } from '../utils/firebase';
 
 const Header: React.FC = () => {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      navigate('/');
+    } catch (error) {
+      console.error('Failed to log out', error);
+    }
+  };
+
   return (
     <header className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3 md:p-4 shadow-md">
       <div className="max-w-5xl mx-auto flex justify-between items-center">
@@ -19,6 +33,28 @@ const Header: React.FC = () => {
           >
             About
           </Link>
+          
+          {currentUser ? (
+            <div className="flex items-center space-x-2">
+              <span className="hidden md:inline text-white/80">
+                {currentUser.email?.split('@')[0]}
+              </span>
+              <button 
+                onClick={handleLogout} 
+                className="bg-white/20 hover:bg-white/30 transition-colors rounded-lg px-3 py-1"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <Link 
+              to="/login" 
+              className="bg-white text-blue-600 hover:bg-blue-50 transition-colors rounded-lg px-3 py-1 font-medium"
+            >
+              Login
+            </Link>
+          )}
+          
           <a 
             href="https://github.com/lablnet/cryonix" 
             target="_blank" 
