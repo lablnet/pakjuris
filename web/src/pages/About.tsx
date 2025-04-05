@@ -179,6 +179,40 @@ const About = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
+                className="bg-amber-50 p-8 rounded-xl border border-amber-100 mb-12"
+              >
+                <h2 className="text-2xl font-bold text-amber-700 mb-4 flex items-center">
+                  <span className="mr-2">⚠️</span> Important Disclaimer
+                </h2>
+                <div className="text-amber-800">
+                  <p className="mb-4">
+                    While we strive for accuracy, please be aware of the following limitations:
+                  </p>
+                  <ul className="list-disc list-inside space-y-2">
+                    <li>
+                      The AI may occasionally provide incorrect or incomplete information about Pakistani laws.
+                    </li>
+                    <li>
+                      The system may sometimes comment on legal matters unnecessarily or beyond the scope of your question.
+                    </li>
+                    <li>
+                      Summaries may not capture all nuances or details of the original legal texts.
+                    </li>
+                    <li className="font-medium">
+                      <strong>Always verify information</strong> by checking the references and original legal documents provided alongside responses.
+                    </li>
+                  </ul>
+                  <p className="mt-4 italic text-sm">
+                    This tool is designed to assist with understanding Pakistani law but should not be considered legal advice. 
+                    For important legal matters, please consult with a qualified legal professional.
+                  </p>
+                </div>
+              </motion.section>
+
+              <motion.section 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
                 className="bg-blue-50 p-8 rounded-xl border border-blue-100"
               >
                 <h2 className="text-2xl font-bold text-blue-700 mb-4">Try It Yourself</h2>
