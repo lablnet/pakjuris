@@ -104,7 +104,7 @@ const StatusDisplay: React.FC<StatusDisplayProps> = ({
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <span>⚠️</span>
-                <p>{connectionError || "Status connection lost"}</p>
+                <p>{connectionError || "Status connection lost. This may be due to server rate limiting."}</p>
               </div>
               {onReconnect && (
                 <button 

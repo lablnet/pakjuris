@@ -16,7 +16,8 @@ const useSSE = () => {
   const eventSourceRef = useRef<EventSource | null>(null);
   const clientIdRef = useRef<string>(apiConfig.getClientId());
   const reconnectAttemptRef = useRef<number>(0);
-  const maxReconnectAttempts = 5;
+  const maxReconnectAttempts = apiConfig.connection.maxReconnectAttempts;
+  const reconnectTimeoutRef = useRef<number | null>(null);
   
   const connectSSE = async () => {
     console.log("Connecting to SSE...");
@@ -89,17 +90,31 @@ const useSSE = () => {
         eventSource.close();
         eventSourceRef.current = null;
         
-        // Attempt to reconnect with exponential backoff
+        // Attempt to reconnect with exponential backoff and jitter
         if (reconnectAttemptRef.current < maxReconnectAttempts) {
-          const backoffTime = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 30000);
-          console.log(`Reconnecting in ${backoffTime}ms (attempt ${reconnectAttemptRef.current + 1}/${maxReconnectAttempts})`);
+          // Base delay with exponential increase (2s, 4s, 8s...)
+          const baseDelay = Math.min(
+            apiConfig.connection.initialRetryDelay * Math.pow(2, reconnectAttemptRef.current), 
+            apiConfig.connection.maxRetryDelay
+          );
           
-          setTimeout(() => {
+          // Add jitter (±30% randomness) to prevent all clients reconnecting simultaneously
+          const jitter = baseDelay * 0.3 * (Math.random() * 2 - 1);
+          const backoffTime = Math.max(1000, baseDelay + jitter);
+          
+          console.log(`Reconnecting in ${Math.round(backoffTime)}ms (attempt ${reconnectAttemptRef.current + 1}/${maxReconnectAttempts})`);
+          
+          // Clear any existing timeout
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+          
+          reconnectTimeoutRef.current = setTimeout(() => {
             reconnectAttemptRef.current += 1;
             connectSSE();
           }, backoffTime);
         } else {
-          setConnectionError("Failed to connect to status updates after multiple attempts.");
+          setConnectionError("Failed to connect to status updates after multiple attempts. Please try again later.");
         }
       };
     } catch (error) {
@@ -124,6 +139,11 @@ const useSSE = () => {
         console.log("Closing SSE connection on unmount");
         eventSourceRef.current.close();
         eventSourceRef.current = null;
+      }
+      
+      // Clear any pending reconnection attempt
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
     };
   }, []);
