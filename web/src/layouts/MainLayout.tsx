@@ -13,7 +13,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         {children}
       </main>
       <footer className="flex-shrink-0 text-center py-2 text-xs text-gray-500 bg-white border-t border-gray-200">
-        <p>© {new Date().getFullYear()} Pakistani Law Chatbot - Powered by AI</p>
+        <p>© {new Date().getFullYear()} Pakistani Law Chatbot - A product of <a href="https://fluxhub.ai" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">FluxHub.ai</a></p>
       </footer>
     </div>
   );
