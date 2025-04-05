@@ -25,7 +25,7 @@ export default function ChatPage() {
 
   return (
     <MainLayout>
-      <div className="flex-grow overflow-hidden flex flex-col p-4 gap-4 h-full">
+      <div className="flex flex-col p-4 gap-4 h-full">
         {/* Chat History Area */}
         <div className="flex-grow overflow-y-auto bg-gray-50 rounded-2xl p-4 space-y-6">
           <div className="min-h-full">

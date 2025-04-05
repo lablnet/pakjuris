@@ -5,7 +5,7 @@ import MainLayout from '../layouts/MainLayout';
 const About = () => {
   return (
     <MainLayout>
-      <div className="flex-grow overflow-y-auto h-full py-8 px-4">
+      <div className="py-8 px-4">
         <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

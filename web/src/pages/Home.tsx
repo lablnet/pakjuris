@@ -34,7 +34,7 @@ const PDFIcon = () => (
 export default function Home() {
   return (
     <MainLayout>
-      <div className="flex-grow overflow-auto">
+      <div>
         {/* Hero Section */}
         <section className="py-12 md:py-16 px-4">
           <div className="max-w-5xl mx-auto">
