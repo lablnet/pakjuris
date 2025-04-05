@@ -2,14 +2,36 @@ import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import useSSE from './useSSE';
 import usePDFViewer from './usePDFViewer';
+import apiConfig from '../config/api';
+import { auth } from '../utils/firebase';
 
 // Create axios instance
 const api = axios.create({
-  baseURL: 'https://us-central1-pakjuris-fa475.cloudfunctions.net/api',
+  baseURL: apiConfig.apiBaseUrl,
   headers: {
     'Content-Type': 'application/json'
   }
 });
+
+// Update auth token when it changes
+const updateAuthToken = async () => {
+  try {
+    const user = auth.currentUser;
+    if (user) {
+      const token = await user.getIdToken(true);
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      localStorage.setItem('authToken', token);
+      return token;
+    } else {
+      delete api.defaults.headers.common['Authorization'];
+      localStorage.removeItem('authToken');
+      return null;
+    }
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
 
 interface ChatMessage {
   question: string;
@@ -48,6 +70,20 @@ const useChat = () => {
     clearPDFViewer
   } = usePDFViewer();
 
+  // Get token on mount and when auth state changes
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        await updateAuthToken();
+      } else {
+        delete api.defaults.headers.common['Authorization'];
+        localStorage.removeItem('authToken');
+      }
+    });
+    
+    return () => unsubscribe();
+  }, []);
+
   // Improved scroll to bottom effect that handles edge cases better
   useEffect(() => {
     const scrollToBottom = () => {
@@ -70,6 +106,9 @@ const useChat = () => {
   const handleAsk = async () => {
     if (!question.trim() || isLoading) return;
 
+    // Update token before making request
+    await updateAuthToken();
+    
     setIsLoading(true);
     setPdfError(null); // Clear previous PDF errors
     clearStatusUpdates(); // Clear previous status updates
@@ -138,8 +177,10 @@ const useChat = () => {
     onDocumentLoadSuccess,
     onDocumentLoadError,
     handleAsk,
-    chatEndRef
+    chatEndRef,
+    updateAuthToken
   };
 };
 
+export { updateAuthToken };
 export default useChat; 
