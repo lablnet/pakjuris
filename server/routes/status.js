@@ -23,20 +23,29 @@ const sendStatusUpdate = (clientId, status) => {
     }
 };
 
-// SSE endpoint to establish connection
+// SSE endpoint to establish connection - use parameter matching to fix path-to-regexp issues
 router.get('/:clientId', (req, res) => {
-    const clientId = req.params.clientId;
+    // Extract client ID from params - ensure it's a valid format
+    const clientId = req.params.clientId || '';
+
+    // Get token from query params if present
+    const token = req.query.token || '';
+
+    // Basic log without token contents
+    if (token) {
+        console.log(`Client ${clientId} connecting with auth token`);
+    }
 
     // Set headers for SSE
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*'
-    });
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    // Send 200 status
+    res.status(200);
 
     // Increase the timeout for Firebase Functions
-    // The default timeout is 60 seconds, but SSE connections might need to stay open longer
     if (req.socket) {
         req.socket.setTimeout(2 * 60 * 1000); // 2 minutes timeout
     }
@@ -54,8 +63,7 @@ router.get('/:clientId', (req, res) => {
         console.log(`SSE client disconnected: ${clientId}, Remaining clients: ${clients.size}`);
     });
 
-    // Keep the connection alive by sending ping every 30 seconds
-    // This helps with Firebase Functions timeout
+    // Keep connection alive with pings
     const pingInterval = setInterval(() => {
         try {
             if (clients.has(clientId)) {

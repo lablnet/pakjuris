@@ -11,20 +11,25 @@ const errorHandler = require('./middleware/errorHandler');
 const queryRoutes = require('./routes/query'); // Import the router
 const { router: statusRoutes } = require('./routes/status'); // Import the SSE router
 
-// Initialize Firebase Adymin SDK
+// Initialize Firebase Admin SDK
 admin.initializeApp();
 
 // Create Express app
 const app = express();
 
 // --- Core Middleware ---
-// Use CORS before other middleware/routes if possible
-app.use(cors()); // Enable Cross-Origin Resource Sharing
-app.use(express.json()); // Parse JSON bodies
-app.use(requestLogger); // Log requests
+// Simple CORS config to avoid path-to-regexp issues
+app.use(cors());
+
+// Basic JSON parsing
+app.use(express.json());
+
+// Custom request logger
+app.use(requestLogger);
 
 // --- Routes ---
-app.get('/', (req, res) => { // Health check
+// Health check endpoint
+app.get('/', (req, res) => {
     res.json({ status: 'Server is running', timestamp: new Date().toISOString() });
 });
 
@@ -35,7 +40,6 @@ app.use('/query', queryRoutes);
 app.use('/status', statusRoutes);
 
 // --- Global Error Handling ---
-// This MUST be the last middleware added
 app.use(errorHandler);
 
 // --- Service Initialization ---

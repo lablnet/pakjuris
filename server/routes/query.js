@@ -8,11 +8,13 @@ const prompts = require('../utils/promptTemplates');
 const config = require('../config/env');
 const { sendStatusUpdate } = require('./status');
 
+// Create a router instance
 const router = express.Router();
 
 const TOP_K_RESULTS = 3;
 const FINAL_CONTEXT_CHUNKS = 3;
 
+// Simple POST route for query - no complex URL patterns
 router.post('/', async(req, res, next) => {
     try {
         // Get clientId from request if available
@@ -194,4 +196,5 @@ router.post('/', async(req, res, next) => {
     }
 });
 
+// Export the router
 module.exports = router;
