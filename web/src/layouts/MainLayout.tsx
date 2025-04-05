@@ -14,7 +14,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         {children}
       </main>
       <footer className="flex-shrink-0 text-center py-3 text-xs text-gray-500 bg-white border-t border-gray-200">
-        <p className="mb-1">© {new Date().getFullYear()} Pakistani Law Chatbot - Powered by AI</p>
+        <p className="mb-1">© {new Date().getFullYear()} PakJuris - Powered by AI</p>
         <p className="text-amber-600">
           <span className="mr-1">⚠️</span> 
           The Bot can make mistakes. Check important information with the original source.

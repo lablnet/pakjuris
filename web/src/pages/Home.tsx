@@ -45,7 +45,7 @@ export default function Home() {
               className="text-center"
             >
               <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent mb-6">
-                Pakistan's Legal Knowledge at Your Fingertips
+                PakJuris - Pakistani Legal Knowledge
               </h1>
               <p className="text-lg md:text-xl text-gray-700 mb-8 max-w-3xl mx-auto">
                 Get instant, accurate answers to your legal questions about Pakistani law, with direct references to source documents.

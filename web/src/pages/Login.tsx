@@ -65,7 +65,7 @@ const Login = () => {
         >
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
             <h1 className="text-2xl font-bold">Welcome Back</h1>
-            <p className="opacity-90">Sign in to continue to Pakistani Law Chatbot</p>
+            <p className="opacity-90">Sign in to continue to PakJuris</p>
           </div>
 
           <div className="p-6">

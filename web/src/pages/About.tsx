@@ -15,7 +15,7 @@ const About = () => {
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-8">
-              <h1 className="text-3xl font-bold mb-4">About Pakistani Law Chatbot</h1>
+              <h1 className="text-3xl font-bold mb-4">About PakJuris</h1>
               <p className="text-lg opacity-90">
                 Leveraging AI to make Pakistani laws accessible to everyone
               </p>

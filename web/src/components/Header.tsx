@@ -39,8 +39,8 @@ const Header: React.FC = () => {
         <Link to="/" className="text-white hover:text-blue-100 transition-colors">
           <h1 className="text-lg md:text-xl font-bold flex items-center">
             <span className="text-2xl mr-2">🇵🇰</span> 
-            <span className="hidden sm:inline">Pakistani Law Chatbot</span>
-            <span className="sm:hidden">PK Law Bot</span>
+            <span className="hidden sm:inline">PakJuris</span>
+            <span className="sm:hidden">PakJuris</span>
           </h1>
         </Link>
         <div className="flex items-center space-x-2 text-sm">

@@ -76,7 +76,7 @@ const Register = () => {
         >
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
             <h1 className="text-2xl font-bold">Create an Account</h1>
-            <p className="opacity-90">Join Pakistani Law Chatbot and get started</p>
+            <p className="opacity-90">Join PakJuris and get started</p>
           </div>
 
           <div className="p-6">
