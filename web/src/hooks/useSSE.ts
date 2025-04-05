@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import apiConfig from '../config/api';
 import { auth } from '../utils/firebase';
+import { useAuthStore } from '../stores/authStore';
 
 interface StatusUpdate {
   step: string;
@@ -14,7 +15,7 @@ const useSSE = () => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const clientIdRef = useRef<string>(apiConfig.getClientId());
+  const { clientId, getToken } = useAuthStore();
   const reconnectAttemptRef = useRef<number>(0);
   const maxReconnectAttempts = apiConfig.connection.maxReconnectAttempts;
   const reconnectTimeoutRef = useRef<number | null>(null);
@@ -30,27 +31,16 @@ const useSSE = () => {
       eventSourceRef.current = null;
     }
     
-    // Get token directly from Firebase if user is logged in
-    let token = null;
-    const user = auth.currentUser;
-    if (user) {
-      try {
-        token = await user.getIdToken(true);
-        // Format as Bearer token (server will extract this)
-        token = `Bearer ${token}`;
-        localStorage.setItem('authToken', token);
-      } catch (err) {
-        console.error('Error getting Firebase token:', err);
-      }
-    }
+    // Get token from Zustand store
+    const token = await getToken();
     
     try {
-      // Construct the URL with clientId from the ref
+      // Construct the URL with clientId from the store
       const apiBase = apiConfig.apiBaseUrl;
       // Pass token in URL parameter - EventSource doesn't support setting headers directly
-      const eventSourceUrl = `${apiBase}${apiConfig.endpoints.status(clientIdRef.current)}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+      const eventSourceUrl = `${apiBase}${apiConfig.endpoints.status(clientId)}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
       
-      console.log(`Creating SSE connection to: ${apiBase}${apiConfig.endpoints.status(clientIdRef.current)}`);
+      console.log(`Creating SSE connection to: ${apiBase}${apiConfig.endpoints.status(clientId)}`);
       
       // Create a new EventSource connection
       const eventSource = new EventSource(eventSourceUrl);
@@ -156,7 +146,7 @@ const useSSE = () => {
   return {
     statusUpdates,
     currentStatus,
-    clientId: clientIdRef.current,
+    clientId,
     clearStatusUpdates,
     isConnected,
     connectionError,

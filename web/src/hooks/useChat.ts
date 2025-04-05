@@ -4,6 +4,7 @@ import useSSE from './useSSE';
 import usePDFViewer from './usePDFViewer';
 import apiConfig from '../config/api';
 import { auth } from '../utils/firebase';
+import { useAuthStore } from '../stores/authStore';
 
 // Create axios instance
 const api = axios.create({
@@ -16,17 +17,15 @@ const api = axios.create({
 // Update auth token when it changes
 const updateAuthToken = async () => {
   try {
-    const user = auth.currentUser;
-    if (user) {
-      const token = await user.getIdToken(true);
-      // Always use Bearer format for Authorization header
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // Store formatted token for other components to use
-      localStorage.setItem('authToken', `Bearer ${token}`);
+    // Use the authStore to get the token
+    const { getToken } = useAuthStore.getState();
+    const token = await getToken();
+    
+    if (token) {
+      api.defaults.headers.common['Authorization'] = token;
       return token;
     } else {
       delete api.defaults.headers.common['Authorization'];
-      localStorage.removeItem('authToken');
       return null;
     }
   } catch (error) {
@@ -56,6 +55,7 @@ const useChat = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   
   const { currentStatus, clientId, clearStatusUpdates } = useSSE();
+  const { getToken } = useAuthStore();
   const {
     currentPdfUrl,
     setCurrentPdfUrl,
@@ -79,7 +79,6 @@ const useChat = () => {
         await updateAuthToken();
       } else {
         delete api.defaults.headers.common['Authorization'];
-        localStorage.removeItem('authToken');
       }
     });
     
