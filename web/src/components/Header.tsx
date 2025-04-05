@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { logoutUser } from '../utils/firebase';
@@ -6,11 +6,28 @@ import { logoutUser } from '../utils/firebase';
 const Header: React.FC = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Close menu when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
       await logoutUser();
       navigate('/');
+      setMenuOpen(false);
     } catch (error) {
       console.error('Failed to log out', error);
     }
@@ -35,16 +52,52 @@ const Header: React.FC = () => {
           </Link>
           
           {currentUser ? (
-            <div className="flex items-center space-x-2">
-              <span className="hidden md:inline text-white/80">
-                {currentUser.email?.split('@')[0]}
-              </span>
+            <div className="relative" ref={menuRef}>
               <button 
-                onClick={handleLogout} 
-                className="bg-white/20 hover:bg-white/30 transition-colors rounded-lg px-3 py-1"
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="flex items-center space-x-1 bg-white/20 hover:bg-white/30 transition-colors rounded-lg px-3 py-1"
               >
-                Logout
+                <span className="hidden md:inline">
+                  {currentUser.displayName || currentUser.email?.split('@')[0]}
+                </span>
+                <span className="md:hidden">Account</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
               </button>
+              
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden z-10">
+                  <div className="p-2 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {currentUser.displayName}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">{currentUser.email}</p>
+                  </div>
+                  <div className="py-1">
+                    <Link
+                      to="/profile"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Profile Settings
+                    </Link>
+                    <Link
+                      to="/chat"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Chat Interface
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <Link 
