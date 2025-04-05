@@ -1,0 +1,131 @@
+import { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
+import useSSE from './useSSE';
+import usePDFViewer from './usePDFViewer';
+
+// Create axios instance
+const api = axios.create({
+  baseURL: 'http://localhost:8000',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+interface ChatMessage {
+  question: string;
+  answer: {
+    intent: 'GREETING' | 'LEGAL_QUERY' | 'CLARIFICATION_NEEDED' | 'IRRELEVANT' | 'NO_MATCH';
+    summary: string;
+    title?: string;
+    year?: string;
+    pageNumber?: number;
+    originalText?: string;
+    pdfUrl?: string | null;
+    matchScore?: number;
+  };
+}
+
+const useChat = () => {
+  const [question, setQuestion] = useState('');
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  
+  const { currentStatus, clientId, clearStatusUpdates } = useSSE();
+  const {
+    currentPdfUrl,
+    setCurrentPdfUrl,
+    currentHighlightText,
+    setCurrentHighlightText,
+    currentHighlightPage,
+    setCurrentHighlightPage,
+    currentNumPages,
+    setCurrentNumPages,
+    pdfError,
+    setPdfError,
+    onDocumentLoadSuccess,
+    onDocumentLoadError,
+    clearPDFViewer
+  } = usePDFViewer();
+
+  // Scroll to bottom of chat on new message
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatHistory]);
+
+  const handleAsk = async () => {
+    if (!question.trim() || isLoading) return;
+
+    setIsLoading(true);
+    setPdfError(null); // Clear previous PDF errors
+    clearStatusUpdates(); // Clear previous status updates
+    clearPDFViewer(); // Clear PDF viewer
+    
+    const userQuestion = question.trim();
+    setQuestion(''); // Clear input immediately
+
+    // Optimistically add user question to history
+    const newUserMessage = { question: userQuestion, answer: { summary: '...', intent: 'LEGAL_QUERY' } }; // Placeholder answer
+    setChatHistory((prev) => [...prev, newUserMessage as ChatMessage]);
+
+    try {
+      const res = await api.post('/query', { 
+        question: userQuestion,
+        clientId: clientId // Send clientId to server
+      });
+      const responseData = res.data;
+
+      // Update the last message in history with the actual answer
+      setChatHistory((prev) => {
+        const updatedHistory = [...prev];
+        updatedHistory[updatedHistory.length - 1].answer = responseData;
+        return updatedHistory;
+      });
+
+      // Update PDF viewer state ONLY if it's a legal query with a valid URL
+      if (responseData.intent === 'LEGAL_QUERY' && responseData.pdfUrl) {
+        console.log("Setting PDF details:", responseData);
+        setCurrentPdfUrl(responseData.pdfUrl);
+        setCurrentHighlightText(responseData.originalText || null);
+        setCurrentHighlightPage(responseData.pageNumber || 1);
+        setCurrentNumPages(null); // Reset numPages until PDF loads
+      }
+
+    } catch (error) {
+      console.error('Error making request:', error);
+      let errorMessage = 'Failed to get response. Please try again.';
+      if (axios.isAxiosError(error) && error.response) {
+        errorMessage = `Error: ${error.response.status} - ${error.response.data?.message || 'Server error'}`;
+      } else if (error instanceof Error) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      // Update the last message to show the error
+      setChatHistory((prev) => {
+        const updatedHistory = [...prev];
+        updatedHistory[updatedHistory.length - 1].answer = { summary: errorMessage, intent: 'IRRELEVANT'}; // Treat as error display
+        return updatedHistory;
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    question,
+    setQuestion,
+    chatHistory,
+    isLoading,
+    currentStatus,
+    currentPdfUrl,
+    currentHighlightText,
+    currentHighlightPage,
+    currentNumPages,
+    pdfError,
+    onDocumentLoadSuccess,
+    onDocumentLoadError,
+    handleAsk,
+    chatEndRef
+  };
+};
+
+export default useChat; 

@@ -7,6 +7,7 @@ const pineconeService = require('./services/pinecone');
 const requestLogger = require('./middleware/requestLogger');
 const errorHandler = require('./middleware/errorHandler');
 const queryRoutes = require('./routes/query'); // Import the router
+const { router: statusRoutes } = require('./routes/status'); // Import the SSE router
 
 const app = express();
 
@@ -24,6 +25,8 @@ app.get('/', (req, res) => { // Health check
 // Mount the query routes
 app.use('/query', queryRoutes);
 
+// Mount the status routes for SSE
+app.use('/status', statusRoutes);
 
 // --- Global Error Handling ---
 // This MUST be the last middleware added
