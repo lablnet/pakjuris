@@ -76,7 +76,12 @@ async function vectorizePDF(filePath, collection) {
     try {
         const pdfBuffer = fs.readFileSync(filePath);
         const pdfData = await pdfParse(pdfBuffer);
-        const cleanedText = pdfData.text.replace(/\s\s+/g, ' ').replace(/\n\n+/g, '\n');
+
+        let cleanedText = pdfData.text.replace(/\s\s+/g, ' ').replace(/\n\n+/g, '\n');
+        // Remove potential headers/footers (example - adjust regex)
+        cleanedText = cleanedText.replace(/^Page \d+ of \d+\s*/gm, '');
+        // Normalize whitespace
+        cleanedText = cleanedText.replace(/\s\s+/g, ' ').replace(/\n\n+/g, '\n').trim();
 
         const baseName = fileName.replace('.pdf', '');
         const yearMatch = baseName.match(/^(\d{4})_/);
@@ -167,9 +172,12 @@ async function vectorizePDF(filePath, collection) {
 
 async function vectorizeFolder(folderPath, collection) { // Pass collection down
     const files = fs.readdirSync(folderPath).filter(file => file.endsWith('.pdf'));
-
+    console.log(`Processing ${files.length} PDFs in ${folderPath}`);
+    let i = 0;
     for (const file of files) {
         await vectorizePDF(path.join(folderPath, file), collection); // Pass collection
+        i++;
+        console.log(`Processed ${i} of ${files.length} PDFs`);
     }
 
     console.log('🎉 All PDFs processed.');
