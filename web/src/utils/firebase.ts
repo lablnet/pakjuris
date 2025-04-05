@@ -9,7 +9,11 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   onAuthStateChanged,
-  User
+  User,
+  updateProfile,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential
 } from "firebase/auth";
 
 // Firebase configuration
@@ -73,6 +77,60 @@ export const resetPassword = async (email: string) => {
 export const logoutUser = async () => {
   try {
     await signOut(auth);
+    return { success: true, error: null };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Update user profile
+export const updateUserProfile = async (displayName: string) => {
+  try {
+    if (!auth.currentUser) {
+      throw new Error('No user logged in');
+    }
+    
+    await updateProfile(auth.currentUser, { displayName });
+    return { success: true, error: null };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Reauthenticate user (required before sensitive operations like password change)
+export const reauthenticateUser = async (currentPassword: string) => {
+  try {
+    if (!auth.currentUser || !auth.currentUser.email) {
+      throw new Error('No user logged in or no email provided');
+    }
+    
+    const credential = EmailAuthProvider.credential(
+      auth.currentUser.email,
+      currentPassword
+    );
+    
+    await reauthenticateWithCredential(auth.currentUser, credential);
+    return { success: true, error: null };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Change user password
+export const changeUserPassword = async (currentPassword: string, newPassword: string) => {
+  try {
+    if (!auth.currentUser) {
+      throw new Error('No user logged in');
+    }
+    
+    // First reauthenticate
+    const reauth = await reauthenticateUser(currentPassword);
+    if (!reauth.success) {
+      throw new Error(reauth.error || 'Failed to authenticate. Check your current password.');
+    }
+    
+    // Then update password
+    await updatePassword(auth.currentUser, newPassword);
     return { success: true, error: null };
   } catch (error: any) {
     return { success: false, error: error.message };
