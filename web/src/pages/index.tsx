@@ -2,7 +2,7 @@ import React from 'react';
 import MainLayout from '../layouts/MainLayout';
 import ChatMessage from '../components/ChatMessage';
 import ChatInput from '../components/ChatInput';
-import StatusUpdate from '../components/StatusUpdate';
+import StatusDisplay from '../components/StatusDisplay';
 import useChat from '../hooks/useChat';
 
 export default function Home() {
@@ -27,11 +27,12 @@ export default function Home() {
     <MainLayout>
       <div className="flex-grow overflow-hidden flex flex-col p-4 gap-4">
         {/* Chat History Area */}
-        <div className="flex-grow overflow-y-auto bg-white shadow rounded-lg p-4 space-y-6">
+        <div className="flex-grow overflow-y-auto bg-gray-50 rounded-2xl p-4 space-y-6">
           {chatHistory.length === 0 && (
-            <p className="text-center text-gray-500 italic">
-              Ask a question about Pakistani law to begin...
-            </p>
+            <div className="text-center text-gray-500 italic">
+              <p className="text-lg">Ask a question about Pakistani law to begin...</p>
+              <p className="text-sm mt-2">Try asking about specific laws, regulations, or legal procedures.</p>
+            </div>
           )}
           
           {chatHistory.map((item, idx) => (
@@ -50,15 +51,18 @@ export default function Home() {
 
           {/* Status Updates */}
           {isLoading && currentStatus && (
-            <StatusUpdate status={currentStatus} />
+            <StatusDisplay status={currentStatus} />
           )}
 
           {/* Loader */}
           {isLoading && !currentStatus && (
             <div className="flex justify-start">
-              <p className="bg-gray-100 text-gray-500 rounded-lg py-2 px-4 max-w-[80%] shadow-sm border border-gray-200 italic">
-                🤖 Thinking...
-              </p>
+              <div className="bg-white text-gray-500 rounded-2xl py-3 px-4 max-w-[80%] shadow-lg border border-gray-100 italic">
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                  <p>🤖 Thinking...</p>
+                </div>
+              </div>
             </div>
           )}
           
