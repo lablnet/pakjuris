@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import Conversation from '../models/Conversation';
 import * as geminiService from '../../../services/gemini';
 import ApiError from '../../../utils/ApiError';
+import Message from '../models/Message';
 
 /**
  * Get all conversations for a user
@@ -30,12 +31,17 @@ export const getConversation = async (req: Request, res: Response, next: NextFun
     const userId = req.user ? (req.user as any)._id || (req.user as any).id : null;
     
     const conversation = await Conversation.findOne({ _id: id, userId });
-    
+    // get messages from the conversation
+    const messages = await Message.find({ conversationId: id });
     if (!conversation) {
       throw new ApiError('Conversation not found');
     }
-    
-    res.json(conversation);
+    // add messages to the conversation
+    const data = {
+      ...conversation.toObject(),
+      messages: messages
+    }
+    res.json(data);
   } catch (error) {
     next(error);
   }
