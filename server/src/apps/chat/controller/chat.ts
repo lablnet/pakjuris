@@ -28,12 +28,13 @@ export const processQuery = async (req: Request, res: Response, next: NextFuncti
         // Get clientId from request if available
         const clientId = req.body.clientId;
 
+        console.log(`Processing query for clientId: ${clientId}`);
         // Function to send status update if clientId is provided
         const updateStatus = (status: any) => {
             if (clientId) {
                 sendStatusUpdate(clientId, status);
             }
-        };
+        }; 
 
         // 1. Validate Input
         if (!req.body || !req.body.question || typeof req.body.question !== 'string' || req.body.question.trim().length === 0) {

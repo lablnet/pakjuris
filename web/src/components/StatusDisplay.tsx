@@ -7,6 +7,9 @@ interface StatusDisplayProps {
     message: string;
     intent?: string;
   };
+  isConnected?: boolean;
+  connectionError?: string | null;
+  onReconnect?: () => void;
 }
 
 const steps = {
@@ -21,7 +24,7 @@ const steps = {
   complete: { icon: '✅', label: 'Complete' }
 };
 
-const StatusDisplay: React.FC<StatusDisplayProps> = ({ status }) => {
+const StatusDisplay: React.FC<StatusDisplayProps> = ({ status, isConnected, connectionError, onReconnect }) => {
   const currentStepIndex = Object.keys(steps).indexOf(status.step);
   const totalSteps = Object.keys(steps).length;
 
@@ -33,6 +36,21 @@ const StatusDisplay: React.FC<StatusDisplayProps> = ({ status }) => {
       className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 shadow-lg border border-blue-100"
     >
       <div className="space-y-4">
+        {/* Connection Error Message */}
+        {connectionError && !isConnected && (
+          <div className="bg-yellow-100 text-amber-800 px-3 py-2 rounded-lg text-xs flex justify-between items-center mb-2">
+            <span>{connectionError}</span>
+            {onReconnect && (
+              <button 
+                onClick={onReconnect}
+                className="bg-amber-200 hover:bg-amber-300 text-amber-800 px-2 py-1 rounded text-xs font-medium ml-2"
+              >
+                Reconnect
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Progress Steps */}
         <div className="flex justify-between items-center">
           {Object.entries(steps).map(([step, { icon, label }], index) => (

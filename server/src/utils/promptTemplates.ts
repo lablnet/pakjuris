@@ -20,7 +20,7 @@ export const SERVER_ERROR_RESPONSE =
 /**
  * Score threshold for filtering vector search results
  */
-export const PINECONE_SCORE_THRESHOLD = 0.7;
+export const PINECONE_SCORE_THRESHOLD = 0.5;
 
 const INTENT_CLASSIFICATION_PROMPT = (question: string) => `
 Analyze the user's question about Pakistani Law and classify its intent into ONE of the following categories:

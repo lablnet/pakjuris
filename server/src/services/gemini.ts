@@ -4,6 +4,7 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import * as prompts from '../utils/promptTemplates';
+require('dotenv').config();
 
 // Initialize Gemini API with key from environment
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');

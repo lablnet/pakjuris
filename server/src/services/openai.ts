@@ -3,13 +3,17 @@
  */
 import OpenAI from 'openai';
 
-// Initialize OpenAI client with API key from environment
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ''
-});
+const AZURE_OPENAI_ENDPOINT = process.env.AZURE_OPENAI_ENDPOINT;
+const AZURE_OPENAI_API_KEY = process.env.AZURE_OPENAI_API_KEY;
+const AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME;
+const AZURE_API_VERSION = process.env.AZURE_API_VERSION;
 
-// Default model for embeddings
-const EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small';
+const azureClient = new OpenAI({
+    apiKey: AZURE_OPENAI_API_KEY,
+    baseURL: `${AZURE_OPENAI_ENDPOINT}openai/deployments/${AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME}`,
+    defaultQuery: { "api-version": AZURE_API_VERSION },
+    defaultHeaders: { "api-key": AZURE_OPENAI_API_KEY },
+});
 
 /**
  * Generates an embedding vector for a given text
@@ -18,7 +22,7 @@ const EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-
  */
 export const getEmbedding = async (text: string): Promise<number[]> => {
   try {
-    console.log(`Generating OpenAI embedding for text (length: ${text.length}) using model: ${EMBEDDING_MODEL}`);
+    console.log(`Generating OpenAI embedding for text (length: ${text.length}) using model: ${AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME}`);
     
     // Ensure text is not empty
     if (!text || text.trim().length === 0) {
@@ -28,22 +32,15 @@ export const getEmbedding = async (text: string): Promise<number[]> => {
     // Truncate if text is too long (OpenAI has token limits)
     const truncatedText = text.length > 8000 ? text.substring(0, 8000) : text;
     
-    // Generate embedding
-    const response = await openai.embeddings.create({
-      model: EMBEDDING_MODEL,
-      input: truncatedText,
-      encoding_format: 'float'
+    // @ts-ignore
+    const embeddingResult = await azureClient.embeddings.create({
+        input: truncatedText,
     });
-    
-    // Extract the embedding
-    const embedding = response.data[0].embedding;
-    
-    if (!embedding || embedding.length === 0) {
-      throw new Error("Failed to generate embedding: Empty response");
+    if (!embeddingResult || !embeddingResult.data || embeddingResult.data.length === 0 || !embeddingResult.data[0].embedding) {
+        throw new Error('Invalid embedding response received from Azure OpenAI.');
     }
-    
-    console.log(`Successfully generated embedding with dimension: ${embedding.length}`);
-    return embedding;
+
+    return embeddingResult.data[0].embedding;
   } catch (error) {
     console.error("❌ Error generating OpenAI embedding:", error);
     throw error;

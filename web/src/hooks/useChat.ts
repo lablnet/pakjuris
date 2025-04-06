@@ -124,7 +124,7 @@ const useChat = () => {
     setChatHistory((prev) => [...prev, newUserMessage as ChatMessage]);
 
     try {
-      const res = await api.post('/api/chat', { 
+      const res = await api.post('/api/chat/query', { 
         question: userQuestion,
         clientId: clientId // Send clientId to server
       });

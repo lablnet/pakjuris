@@ -1,7 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import apiConfig from '../config/api';
-import { auth } from '../utils/firebase';
-import { useAuthStore } from '../stores/authStore';
 
 interface StatusUpdate {
   step: string;
@@ -12,97 +9,43 @@ interface StatusUpdate {
 const useSSE = () => {
   const [statusUpdates, setStatusUpdates] = useState<StatusUpdate[]>([]);
   const [currentStatus, setCurrentStatus] = useState<StatusUpdate | null>(null);
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const { clientId, getToken } = useAuthStore();
-  const reconnectAttemptRef = useRef<number>(0);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const maxReconnectAttempts = apiConfig.connection.maxReconnectAttempts;
-
-  const connectSSE = async () => {
-    setConnectionError(null);
-
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-
-    const token = await getToken();
-
-    try {
-      const apiBase = apiConfig.apiBaseUrl;
-      const endpoint = apiConfig.endpoints.status(clientId);
-      const eventSourceUrl = `${apiBase}${endpoint}`;
-
-      const eventSource = new EventSource(eventSourceUrl);
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        setIsConnected(true);
-        reconnectAttemptRef.current = 0;
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data: StatusUpdate = JSON.parse(event.data);
-          setStatusUpdates(prev => [...prev, data]);
-          setCurrentStatus(data);
-        } catch (error) {
-          console.error('Error parsing SSE message:', error);
-        }
-      };
-
-      eventSource.onerror = () => {
-        setIsConnected(false);
-        setConnectionError('SSE connection error. Attempting to reconnect...');
-
-        eventSource.close();
-        eventSourceRef.current = null;
-
-        if (reconnectAttemptRef.current < maxReconnectAttempts) {
-          const baseDelay = Math.min(
-            apiConfig.connection.initialRetryDelay * 2 ** reconnectAttemptRef.current,
-            apiConfig.connection.maxRetryDelay
-          );
-          const jitter = baseDelay * 0.3 * (Math.random() * 2 - 1);
-          const backoffTime = Math.max(1000, baseDelay + jitter);
-
-          if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            reconnectAttemptRef.current += 1;
-            connectSSE();
-          }, backoffTime);
-        } else {
-          setConnectionError('Failed to connect after multiple attempts. Please try again later.');
-        }
-      };
-    } catch (error) {
-      console.error('Error creating SSE connection:', error);
-      setConnectionError('Failed to create SSE connection.');
-    }
-  };
+  const clientIdRef = useRef<string>(`client-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
 
   useEffect(() => {
-    connectSSE();
+    // Create EventSource connection
+    const eventSource = new EventSource(`http://localhost:8000/api/chat/status/${clientIdRef.current}`);
+    eventSourceRef.current = eventSource;
 
-    const unsubscribe = auth.onAuthStateChanged(() => {
-      connectSSE();
-    });
-
-    return () => {
-      unsubscribe();
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
+    // Handle incoming messages
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('SSE Update:', data);
+        
+        // Add to status updates history
+        setStatusUpdates(prev => [...prev, data]);
+        
+        // Update current status
+        setCurrentStatus(data);
+      } catch (error) {
+        console.error('Error parsing SSE message:', error);
       }
     };
-  }, [clientId]); // Dependency on clientId to reconnect when it changes
+
+    // Handle connection errors
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      eventSource.close();
+    };
+
+    // Cleanup on unmount
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
+  }, []);
 
   const clearStatusUpdates = () => {
     setStatusUpdates([]);
@@ -112,12 +55,9 @@ const useSSE = () => {
   return {
     statusUpdates,
     currentStatus,
-    clientId,
-    clearStatusUpdates,
-    isConnected,
-    connectionError,
-    reconnect: connectSSE
+    clientId: clientIdRef.current,
+    clearStatusUpdates
   };
 };
 
-export default useSSE;
+export default useSSE; 

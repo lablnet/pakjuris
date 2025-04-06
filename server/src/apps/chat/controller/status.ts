@@ -12,6 +12,7 @@ export const sendStatusUpdate = (clientId: string, status: any): void => {
   const client = clients.get(clientId);
   if (client) {
     try {
+      console.log(`Sending SSE update to client ${clientId}:`, status);
       client.write(`data: ${JSON.stringify(status)}\n\n`);
       // Flush data to ensure it's sent immediately
       if (typeof (client as any).flush === 'function') {
@@ -51,16 +52,14 @@ export const establishConnection = async(req: Request, res: Response): Promise<v
         // Send initial connection message
         res.write(`data: ${JSON.stringify({ type: 'connected', message: 'SSE connection established' })}\n\n`);
 
-
         // Store client connection
         clients.set(clientId, res);
-        console.log(`SSE client connected: ${clientId}, Total clients: ${clients.size}`);
 
         // Handle client disconnect
         req.on('close', () => {
             clients.delete(clientId);
-            console.log(`SSE client disconnected: ${clientId}, Remaining clients: ${clients.size}`);
         });
+
     } catch (error) {
         console.error('SSE connection error:', error);
         res.status(500).json({ error: 'Internal server error' });
