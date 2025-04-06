@@ -1,24 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { registerWithEmailAndPassword, signInWithGoogle } from '../utils/firebase';
 import MainLayout from '../layouts/MainLayout';
+import useRegister from '../hooks/auth/useRegister';
 
 const Register = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  
   const navigate = useNavigate();
+  
+  const {
+    email,
+    setEmail,
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
+    password,
+    setPassword,
+    passwordConfirm,
+    setPasswordConfirm,
+    loading,
+    register,
+    step,
+    setAgreeToTerms,
+    agreeToTerms,
+    code,
+    setCode,
+    handleResendCode,
+    resendCountdown,
+    validateOTP
+  } = useRegister();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     
     // Validate passwords match
-    if (password !== confirmPassword) {
+    if (password !== passwordConfirm) {
       setError('Passwords do not match');
       return;
     }
@@ -29,41 +47,214 @@ const Register = () => {
       return;
     }
     
-    setLoading(true);
-    
     try {
-      const result = await registerWithEmailAndPassword(email, password);
-      
-      if (result.error) {
-        setError(result.error);
-      } else {
-        navigate('/');
-      }
+      await register();
     } catch (err: any) {
       setError(err.message || 'Failed to create account');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
-    setLoading(true);
+    
+    if (!code || code.length !== 6) {
+      setError('Please enter a valid 6-digit OTP');
+      return;
+    }
     
     try {
-      const result = await signInWithGoogle();
-      
-      if (result.error) {
-        setError(result.error);
-      } else {
-        navigate('/');
-      }
+      await validateOTP(code);
     } catch (err: any) {
-      setError(err.message || 'Failed to sign up with Google');
-    } finally {
-      setLoading(false);
+      setError(err.message || 'Failed to verify OTP');
     }
   };
+
+  // Render different steps based on the registration process
+  const renderStepContent = () => {
+    switch (step) {
+      case 1:
+        return renderSignupForm();
+      case 2:
+        return renderOTPVerification();
+      default:
+        return renderSignupForm();
+    }
+  };
+
+  const renderSignupForm = () => (
+    <>
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+        <h1 className="text-2xl font-bold">Create an Account</h1>
+        <p className="opacity-90">Join and get started</p>
+      </div>
+
+      <div className="p-6">
+        {error && (
+          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="firstName" className="block text-gray-700 font-medium mb-1">
+                First Name
+              </label>
+              <input
+                type="text"
+                id="firstName"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="lastName" className="block text-gray-700 font-medium mb-1">
+                Last Name
+              </label>
+              <input
+                type="text"
+                id="lastName"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block text-gray-700 font-medium mb-1">
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-gray-700 font-medium mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="passwordConfirm" className="block text-gray-700 font-medium mb-1">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              id="passwordConfirm"
+              value={passwordConfirm}
+              onChange={(e) => setPasswordConfirm(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              required
+            />
+          </div>
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="terms"
+              checked={agreeToTerms}
+              onChange={(e) => setAgreeToTerms(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
+              I agree to the <a href="#" className="text-blue-600 hover:underline">Terms of Service</a> and <a href="#" className="text-blue-600 hover:underline">Privacy Policy</a>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
+          >
+            {loading ? 'Creating Account...' : 'Create Account'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-gray-600">
+            Already have an account?{' '}
+            <Link to="/login" className="text-blue-600 hover:text-blue-800 font-medium">
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderOTPVerification = () => (
+    <>
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+        <h1 className="text-2xl font-bold">Verify Your Email</h1>
+        <p className="opacity-90">We've sent a code to {email}</p>
+      </div>
+
+      <div className="p-6">
+        {error && (
+          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleVerifyOTP} className="space-y-4">
+          <div>
+            <label htmlFor="otp" className="block text-gray-700 font-medium mb-1">
+              Enter Verification Code
+            </label>
+            <input
+              type="text"
+              id="otp"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              placeholder="6-digit code"
+              maxLength={6}
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
+          >
+            {loading ? 'Verifying...' : 'Verify Email'}
+          </button>
+
+          <div className="text-center mt-4">
+            <button
+              type="button"
+              onClick={handleResendCode}
+              disabled={resendCountdown > 0 || loading}
+              className="text-blue-600 hover:text-blue-800 font-medium"
+            >
+              {resendCountdown > 0 ? `Resend code in ${resendCountdown}s` : 'Resend code'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </>
+  );
 
   return (
     <MainLayout>
@@ -74,111 +265,7 @@ const Register = () => {
           transition={{ duration: 0.5 }}
           className="bg-white rounded-2xl shadow-lg overflow-hidden w-full max-w-md"
         >
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
-            <h1 className="text-2xl font-bold">Create an Account</h1>
-            <p className="opacity-90">Join PakJuris and get started</p>
-          </div>
-
-          <div className="p-6">
-            {error && (
-              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-gray-700 font-medium mb-1">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-gray-700 font-medium mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="confirmPassword" className="block text-gray-700 font-medium mb-1">
-                  Confirm Password
-                </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
-              >
-                {loading ? 'Creating Account...' : 'Create Account'}
-              </button>
-            </form>
-
-            <div className="my-6 flex items-center">
-              <div className="flex-grow h-px bg-gray-300"></div>
-              <span className="px-4 text-gray-500 text-sm">OR</span>
-              <div className="flex-grow h-px bg-gray-300"></div>
-            </div>
-
-            <button
-              onClick={handleGoogleSignIn}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-800 font-medium py-2.5 px-4 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              Sign up with Google
-            </button>
-
-            <div className="mt-6 text-center">
-              <p className="text-gray-600">
-                Already have an account?{' '}
-                <Link to="/login" className="text-blue-600 hover:text-blue-800 font-medium">
-                  Sign in
-                </Link>
-              </p>
-            </div>
-          </div>
+          {renderStepContent()}
         </motion.div>
       </div>
     </MainLayout>
