@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Mail, Lock } from 'lucide-react';
 import MainLayout from '../../layouts/MainLayout';
 import useAuth from '../../hooks/auth/useAuth';
+import Button from '../../components/Button';
+import Input from '../../components/Input';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -45,19 +48,15 @@ const Login = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-gray-700 font-medium mb-1">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                  required
-                />
-              </div>
+              <Input
+                id="email"
+                type="email"
+                label="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                leftIcon={<Mail size={18} />}
+                required
+              />
 
               <div>
                 <div className="flex justify-between mb-1">
@@ -68,23 +67,25 @@ const Login = () => {
                     Forgot Password?
                   </Link>
                 </div>
-                <input
-                  type="password"
+                <Input
                   id="password"
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  leftIcon={<Lock size={18} />}
+                  isPasswordToggleable
                   required
                 />
               </div>
 
-              <button
+              <Button
                 type="submit"
+                isLoading={loading}
                 disabled={loading}
-                className="w-full bg-blue-600 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
+                fullWidth
               >
                 {loading ? 'Signing in...' : 'Sign In'}
-              </button>
+              </Button>
             </form>
 
             <div className="mt-6 text-center">
