@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
-import MainLayout from '../layouts/MainLayout';
-import ChatMessage from '../components/ChatMessage';
-import ChatInput from '../components/ChatInput';
-import StatusDisplay from '../components/StatusDisplay';
-import useChat from '../hooks/useChat';
-import usePDFViewer from '../hooks/usePDFViewer';
+import { useEffect } from 'react';
+import MainLayout from '../../layouts/MainLayout';
+import ChatMessage from '../../components/ChatMessage';
+import ChatInput from '../../components/ChatInput';
+import StatusDisplay from '../../components/StatusDisplay';
+import useChat from '../../hooks/useChat';
+import usePDFViewer from '../../hooks/usePDFViewer';
 
 export default function ChatPage() {
   const {
