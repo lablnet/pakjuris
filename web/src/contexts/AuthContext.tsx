@@ -1,13 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from 'firebase/auth';
-import { subscribeToAuthChanges } from '../utils/firebase';
+import { useUserStore } from '../stores/userStore';
+import { api } from '../services/api';
 
 interface AuthContextType {
-  currentUser: User | null;
   loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({ currentUser: null, loading: true });
+const AuthContext = createContext<AuthContextType>({ loading: true });
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -16,20 +15,31 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { setUser } = useUserStore();
 
   useEffect(() => {
-    const unsubscribe = subscribeToAuthChanges((user) => {
-      setCurrentUser(user);
-      setLoading(false);
-    });
+    const checkAuthStatus = async () => {
+      try {
+        // Fetch the current user from the API
+        const response = await api.profile.me();
+        if (response && response.user) {
+          setUser(response.user);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        // If request fails, user is not authenticated
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return unsubscribe;
-  }, []);
+    checkAuthStatus();
+  }, [setUser]);
 
   const value = {
-    currentUser,
     loading
   };
 
