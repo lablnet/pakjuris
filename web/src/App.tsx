@@ -15,7 +15,7 @@ import About from './pages/About';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import ResetPassword from './pages/Auth/ResetPassword';
-import Profile from './pages/Profile';
+import Profile from './pages/Dashboard/Profile';
 
 // Import components
 import ProtectedRoute from './components/ProtectedRoute';

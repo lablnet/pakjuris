@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import MainLayout from '../layouts/MainLayout';
-import { useUserStore } from '../stores/userStore';
-import { api } from '../services/api';
-import { useToast } from '../components/ToastComp';
+import MainLayout from '../../layouts/MainLayout';
+import { useUserStore } from '../../stores/userStore';
+import { api } from '../../services/api';
+import { useToast } from '../../components/ToastComp';
 
 const Profile = () => {
   const { user } = useUserStore();
