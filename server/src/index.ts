@@ -29,7 +29,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Public Routes
-app.use('/api/auth', authRoutes);
+app.use('/api', authRoutes);
 app.use('/api/chat', chatRoutes);
 
 // Routes below this middleware require authentication
