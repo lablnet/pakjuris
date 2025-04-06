@@ -62,30 +62,76 @@ const useAuth = () => {
     }
   };
 
-  // const googleSignIn = async (token: any) => {
-  //   setLoading(true);
-  //   setError(null);
-  //   try {
-  //     const response = await api.auth.googleSignIn(token);
-  //     console.log('Google Sign-In response:', response);
-  //     setUser(response.data.user);
-  //     console.log('User set in store:', response);
-  //     navigate('/dashboard');
-  //   } catch (err: any) {
-  //     console.error('Google Sign-In error:', err);
-  //     setError(err.message);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  const resetPassword = async (email: string) => {
+    setLoading(true);
+    try {
+      await api.auth.reset.sendOTP(email);
+      toast({
+        type: 'success',
+        message: "Password reset OTP sent to your email",
+      });
+      return true;
+    } catch (error: any) {
+      let err = parseErrors(error.response.data)
+      console.log("Error occured! ", err)
+      err.general && toast({
+        type: 'error',
+        message: err.general,
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const validateResetOTP = async (data: { email: string; otp: string }) => {
+    setLoading(true);
+    try {
+      const response = await api.auth.reset.validateOTP(data);
+      return response.valid;
+    } catch (error: any) {
+      let err = parseErrors(error.response.data)
+      console.log("Error occured! ", err)
+      err.general && toast({
+        type: 'error',
+        message: err.general,
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updatePassword = async (data: { email: string; otp: string; password: string, repeat: string }) => {
+    setLoading(true);
+    try {
+      await api.auth.reset.updatePassword(data);
+      toast({
+        type: 'success',
+        message: "Password updated successfully",
+      });
+      return true;
+    } catch (error: any) {
+      let err = parseErrors(error.response.data)
+      console.log("Error occured! ", err)
+      err.general && toast({
+        type: 'error',
+        message: err.general,
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return {
     login,
-    // logout,
+    logout,
     loading,
-    //googleSignIn,
     setLoading,
-    logout
+    resetPassword,
+    validateResetOTP,
+    updatePassword
   };
 };
 
