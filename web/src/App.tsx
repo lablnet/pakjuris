@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -9,13 +9,14 @@ import { ToastManager } from './components/ToastComp';
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.mjs`;
 
 // Import pages
-import Home from './pages/Home';
-import ChatPage from './pages/ChatPage';
-import About from './pages/About';
+import Home from './pages/Site/Home';
+import ChatPage from './pages/Dashboard/ChatPage';
+import About from './pages/Site/About';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import ResetPassword from './pages/Auth/ResetPassword';
 import Profile from './pages/Dashboard/Profile';
+import NotFound from './pages/NotFound';
 
 // Import components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -40,7 +41,7 @@ export default function App() {
               <Route path="/profile" element={<Profile />} />
             </Route>
             
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>
       </AuthProvider>
