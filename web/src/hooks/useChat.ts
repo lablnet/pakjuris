@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import useSSE from './useSSE';
 import usePDFViewer from './usePDFViewer';
 import apiConfig from '../config/api';
 import { auth } from '../utils/firebase';
 import { useAuthStore } from '../stores/authStore';
+import useStatusStore from '../stores/statusStore';
+import useSSE from './useSSE';
 
 // Create axios instance
 const api = axios.create({
@@ -55,7 +56,8 @@ const useChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   
-  const { currentStatus, clientId, clearStatusUpdates } = useSSE();
+  const { clientId, clearStatusUpdates } = useSSE();
+  const { currentStatus } = useStatusStore();
   const { getToken } = useAuthStore();
   const {
     currentPdfUrl,
@@ -111,11 +113,15 @@ const useChat = () => {
     // Update token before making request
     await updateAuthToken();
     
+    // Clear status updates using the function from useSSE
+    if (typeof clearStatusUpdates === 'function') {
+        clearStatusUpdates();
+    }
+
     setIsLoading(true);
     setPdfError(null); // Clear previous PDF errors
-    clearStatusUpdates(); // Clear previous status updates
     clearPDFViewer(); // Clear PDF viewer
-    
+
     const userQuestion = question.trim();
     setQuestion(''); // Clear input immediately
 
@@ -124,7 +130,7 @@ const useChat = () => {
     setChatHistory((prev) => [...prev, newUserMessage as ChatMessage]);
 
     try {
-      const res = await api.post('/api/chat/query', { 
+      const res = await api.post('/api/chat/query', {
         question: userQuestion,
         clientId: clientId // Send clientId to server
       });
@@ -157,10 +163,19 @@ const useChat = () => {
       // Update the last message to show the error
       setChatHistory((prev) => {
         const updatedHistory = [...prev];
-        updatedHistory[updatedHistory.length - 1].answer = { summary: errorMessage, intent: 'IRRELEVANT'}; // Treat as error display
+        // Ensure the last message exists before trying to update it
+        if (updatedHistory.length > 0) {
+            updatedHistory[updatedHistory.length - 1].answer = { summary: errorMessage, intent: 'IRRELEVANT'}; // Treat as error display
+        }
         return updatedHistory;
       });
+      // If there's an error, clear any potentially lingering status
+      // Check if clearStatusUpdates is available from useSSE
+      if (typeof clearStatusUpdates === 'function') { 
+        clearStatusUpdates();
+      }
     } finally {
+      // Ensure loading is set to false after the try/catch block completes
       setIsLoading(false);
     }
   };
