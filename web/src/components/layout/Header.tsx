@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useUserStore } from '../stores/userStore';
-import useAuth from '../hooks/auth/useAuth';
+import { useUserStore } from '../../stores/userStore';
+import useAuth from '../../hooks/auth/useAuth';
 
 const Header: React.FC = () => {
   const { user } = useUserStore();
