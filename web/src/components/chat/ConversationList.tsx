@@ -37,7 +37,8 @@ const ConversationList: React.FC<ConversationListProps> = ({
       setIsLoading(true);
       setError(null);
       const response = await api.chat.conversations.list();
-      setConversations(response.data);
+      console.log("CONVERSATIONS", response);
+      setConversations(response);
     } catch (err) {
       console.error('Failed to fetch conversations:', err);
       setError('Failed to load conversations');
