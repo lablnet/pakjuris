@@ -2,8 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import usePDFViewer from './usePDFViewer';
 import apiConfig from '../config/api';
-import { auth } from '../utils/firebase';
-import { useAuthStore } from '../stores/authStore';
 import useStatusStore from '../stores/statusStore';
 import useSSE from './useSSE';
 
@@ -15,26 +13,6 @@ const api = axios.create({
   }
 });
 
-// Update auth token when it changes
-const updateAuthToken = async () => {
-  try {
-    // Use the authStore to get the token
-    const { getToken } = useAuthStore.getState();
-    const token = await getToken();
-    
-    if (token) {
-      // Add the Bearer prefix to the raw token
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      return token;
-    } else {
-      delete api.defaults.headers.common['Authorization'];
-      return null;
-    }
-  } catch (error) {
-    console.error('Error getting token:', error);
-    return null;
-  }
-};
 
 interface ChatMessage {
   question: string;
@@ -58,7 +36,7 @@ const useChat = () => {
   
   const { clientId, clearStatusUpdates } = useSSE();
   const { currentStatus } = useStatusStore();
-  const { getToken } = useAuthStore();
+
   const {
     currentPdfUrl,
     setCurrentPdfUrl,
@@ -75,18 +53,6 @@ const useChat = () => {
     clearPDFViewer
   } = usePDFViewer();
 
-  // Get token on mount and when auth state changes
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        await updateAuthToken();
-      } else {
-        delete api.defaults.headers.common['Authorization'];
-      }
-    });
-    
-    return () => unsubscribe();
-  }, []);
 
   // Improved scroll to bottom effect that handles edge cases better
   useEffect(() => {
@@ -109,9 +75,6 @@ const useChat = () => {
 
   const handleAsk = async () => {
     if (!question.trim() || isLoading) return;
-
-    // Update token before making request
-    await updateAuthToken();
     
     // Clear status updates using the function from useSSE
     if (typeof clearStatusUpdates === 'function') {
@@ -195,9 +158,7 @@ const useChat = () => {
     onDocumentLoadError,
     handleAsk,
     chatEndRef,
-    updateAuthToken
   };
 };
 
-export { updateAuthToken };
-export default useChat; 
+export default useChat;
