@@ -8,7 +8,7 @@ import { useUserStore } from '../stores/userStore';
 import { MeType } from '../types/api';
 
 // Set Axios defaults
-axios.defaults.baseURL = process.env.REACT_APP_API_SERVER || "https://backend.filter.fm/api/";
+axios.defaults.baseURL = import.meta.env.VITE_API_SERVER || "https://backend.filter.fm/api/";
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 axios.defaults.headers.common['Accept'] = 'application/json';
@@ -111,9 +111,12 @@ const api = {
         axiosWrapper(axiosInstance.post('/auth/reset/update-password', data)),
     },
     register: {
-      signup: (data: any): Promise<any> => axiosWrapper(axiosInstance.post('/auth/signup/', data)),
-      validateOTP: (data: any): Promise<any> => axiosWrapper(axiosInstance.post('/auth/verify-email/', data)),
-      resendOTP: (data: any): Promise<any> => axiosWrapper(axiosInstance.post('/auth/resend-otp/', data))
+      signup: (data: { full_name: string; email: string; password: string }): Promise<any> => 
+        axiosWrapper(axiosInstance.post('/auth/signup/', data)),
+      validateOTP: (data: { otp: string; email: string }): Promise<MeType> => 
+        axiosWrapper(axiosInstance.post('/auth/verify-email/', data)),
+      resendOTP: (data: { email: string }): Promise<any> => 
+        axiosWrapper(axiosInstance.post('/auth/resend-otp/', data))
     }
   },
   profile: {
