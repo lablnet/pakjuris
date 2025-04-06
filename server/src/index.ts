@@ -5,6 +5,7 @@ import express, { Application } from 'express';
 import mongoose, { ConnectOptions } from 'mongoose';
 import cors from 'cors';
 import authRoutes from './apps/user/routes';
+import chatRoutes from './apps/chat/routes';
 
 import authMiddleware from './middleware/authMiddleware';
 import asyncHandler from './middleware/asyncHandler';
@@ -27,10 +28,12 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
-// Routes
-app.use('/api/', authRoutes);
-app.use(asyncHandler(authMiddleware));
+// Public Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/chat', chatRoutes);
 
+// Routes below this middleware require authentication
+// app.use(asyncHandler(authMiddleware));
 
 // Global Error Handler
 app.use(errorHandler);
@@ -48,6 +51,7 @@ mongoose
   } as ConnectOptions)
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('Could not connect to MongoDB', err));
+
 
 // Start Server
 app.listen(port, () => {

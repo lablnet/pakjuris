@@ -10,8 +10,8 @@ const config = {
   
   // API endpoints
   endpoints: {
-    query: "/query",
-    status: (clientId: string) => `/status/${clientId}`,
+    query: "/api/chat/query",
+    status: (clientId: string) => `/api/chat/status/${clientId}`,
   }
 };
 
