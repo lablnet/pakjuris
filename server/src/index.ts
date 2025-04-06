@@ -30,10 +30,10 @@ app.use(cookieParser());
 
 // Public Routes
 app.use('/api', authRoutes);
-app.use('/api/chat', chatRoutes);
 
 // Routes below this middleware require authentication
-// app.use(asyncHandler(authMiddleware));
+app.use(asyncHandler(authMiddleware));
+app.use('/api/chat', chatRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
