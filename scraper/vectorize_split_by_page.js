@@ -1,11 +1,11 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-const pdfParse = require('pdf-parse');
 const { MongoClient } = require('mongodb');
 const { Pinecone } = require('@pinecone-database/pinecone');
-const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
 const { OpenAI } = require("openai");
+const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+
 
 // --- Config ---
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -46,36 +46,28 @@ async function initDB() {
     return mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
 }
 
-// Function to attempt splitting text into pages based on common patterns
-function splitTextIntoPages(fullText, numPages) {
-    // Strategy 1: Look for form feed character (\f) - often used by PDF libraries
-    let pages = fullText.split('\f');
-    console.log(`   Split attempt 1 (form feed): Found ${pages.length} potential pages.`);
+async function extractPagesFromPDF(pdfBuffer) {
+    const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
+    const pdfDocument = await loadingTask.promise;
+    const numPages = pdfDocument.numPages;
 
-    // Strategy 2: If form feed doesn't work well, try regex for "Page X of Y" (less reliable)
-    if (pages.length <= 1 && numPages > 1) {
-        console.log(`   Form feed split ineffective, trying regex split...`);
-        // Regex to split by "Page <number> of <total>" potentially followed by whitespace
-        // Making the " of <total>" part optional for robustness
-        pages = fullText.split(/Page\s+\d+(\s+of\s+\d+)?\s*/i);
-        console.log(`   Split attempt 2 (regex): Found ${pages.length} potential pages.`);
-        // Regex split often leaves an empty first element if the pattern is at the start
-        if (pages[0].trim() === '') {
-            pages.shift();
+    const pages = [];
+
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+        const page = await pdfDocument.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const text = textContent.items.map(item => item.str).join(' ').replace(/\s+/g, ' ').trim();
+
+        if (text.length > 50) {
+            pages.push({ pageNumber: pageNum, text });
+        } else {
+            console.log(`Skipping page ${pageNum} (insufficient content).`);
         }
     }
 
-    // Basic Filtering: Remove very short "pages" that might be artifacts
-    const cleanedPages = pages.map(p => p.trim()).filter(p => p.length > 50); // Keep pages with some content
-    console.log(`   Filtered down to ${cleanedPages.length} pages with significant content.`);
-
-    // Warning if page count mismatch is large
-    if (Math.abs(cleanedPages.length - numPages) > numPages * 0.1) { // Allow 10% difference
-        console.warn(`   ⚠️ Potential page split mismatch: pdf-parse reported ${numPages} pages, but split resulted in ${cleanedPages.length} usable text pages.`);
-    }
-
-    return cleanedPages;
+    return pages;
 }
+
 
 // More robust lookup - consider normalizing titles if needed
 async function findExistingDoc(collection, year, title) {
@@ -99,106 +91,77 @@ async function vectorizePDF(filePath, collection) {
     console.log(`\n📄 Processing: ${fileName}`);
     try {
         const pdfBuffer = fs.readFileSync(filePath);
-        const pdfData = await pdfParse(pdfBuffer, {
-            pagerender: (pageData) => {
-                // This callback can extract text per page, but it's complex to aggregate cleanly here.
-                // We'll primarily rely on pdfData.numpages and split the full text.
-                return ''; // Don't need the rendered text from here
-            }
-        });
-        const totalPages = pdfData.numpages;
-        console.log(`   PDF has ${totalPages} pages.`);
 
-        // Basic text cleanup on the entire extracted text
-        let fullCleanedText = pdfData.text.replace(/\s\s+/g, ' ').replace(/\n\n+/g, '\n').trim();
+        // Using robust extraction
+        const pages = await extractPagesFromPDF(pdfBuffer);
+
+
+        if (pages.length === 0) {
+            console.warn(`⚠️ No usable pages extracted from ${fileName}.`);
+            return;
+        }
+
+        console.log(`Extracted ${pages.length} usable pages from PDF.`);
 
         const baseName = fileName.replace('.pdf', '');
         const yearMatch = baseName.match(/^(\d{4})_/);
         const year = yearMatch ? yearMatch[1] : "Unknown";
-        let title = baseName.replace(`${year}_`, '').replace(/_/g, ' ').trim();
+        const title = baseName.replace(`${year}_`, '').replace(/_/g, ' ').trim();
 
         const existingDoc = await findExistingDoc(collection, year, title);
         if (!existingDoc) {
-            console.error(`❌ Skipping - No matching document in MongoDB for ${fileName} (Year: ${year}, Title: ${title})`);
+            console.error(`❌ Skipping - No matching document in MongoDB for ${fileName}`);
             return;
         }
 
         const url = existingDoc.url;
-        console.log(`Using URL: ${url}`);
-
-        const pageChunks = splitTextIntoPages(fullCleanedText, totalPages);
-        console.log(`   Split into ${pageChunks.length} pages chunks`);
-
         const pineconeVectors = [];
 
-        for (let i = 0; i < pageChunks.length; i++) {
-            const pageText = pageChunks[i];
-            const pageNumber = i + 1;
-            if (!pageText || pageText.length < 50) { // Increase minimum length for pages
-                console.log(`   Skipping embedding for page ${pageNumber} (too short).`);
-                continue;
-            }
-
+        for (const page of pages) {
             try {
-                console.log(`   Embedding page ${pageNumber} using Azure OpenAI...`);
-
-                // --- <<< CORRECT Call Azure OpenAI for Embedding using 'openai' library >>> ---
                 const embeddingResult = await azureClient.embeddings.create({
-                    // The 'model' parameter is actually IGNORED when baseURL points directly to a deployment.
-                    // The deployment name is already part of the baseURL.
-                    // model: AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME, // This is not strictly needed here but doesn't hurt
-                    input: pageText // Pass the single chunk string directly
+                    input: page.text
                 });
-                // --- <<< End CORRECTED Azure OpenAI Call >>> ---
-
-
-                if (!embeddingResult || !embeddingResult.data || embeddingResult.data.length === 0 || !embeddingResult.data[0].embedding) {
-                    throw new Error('Invalid embedding response received from Azure OpenAI.');
+                if (!embeddingResult.data || !embeddingResult.data[0] || !embeddingResult.data[0].embedding) {
+                    console.error(`❌ No embedding result for page ${page.pageNumber}`);
+                    continue;
                 }
 
                 const vector = embeddingResult.data[0].embedding;
-                // --- <<< End Azure OpenAI Call >>> ---
 
                 pineconeVectors.push({
-                    id: `${existingDoc._id.toString()}_chunk_${i}`,
+                    id: `${existingDoc._id.toString()}_page_${page.pageNumber}`,
                     values: vector,
                     metadata: {
-                        pageNumber: pageNumber,
-                        chunkIndex: i,
-                        text: pageText,
-                        title: existingDoc.title, // Use consistent title from DB
-                        year: existingDoc.year, // Use consistent year from DB
+                        pageNumber: page.pageNumber,
+                        text: page.text,
+                        title: existingDoc.title,
+                        year: existingDoc.year,
                         fileName,
-                        url: url, // Use the determined URL
+                        url
                     }
                 });
 
-                // // Keep the delay, check Azure rate limits if you encounter issues
-                // console.log(`   Waiting 10 seconds...`);
-                // await new Promise(resolve => setTimeout(resolve, 10000));
-
             } catch (embedError) {
-                console.error(`   ❌ Error embedding chunk ${i + 1}: ${embedError.message}`);
-                // Consider adding logic to break or retry based on error type
+                console.error(`❌ Error embedding page ${page.pageNumber}: ${embedError.message}`);
             }
         }
 
-        // --- Pinecone Upsert (remains the same logic) ---
-        if (pineconeVectors.length > 0) {
-            const BATCH_SIZE = 100; // Pinecone batch limit
-            for (let i = 0; i < pineconeVectors.length; i += BATCH_SIZE) {
-                const batch = pineconeVectors.slice(i, i + BATCH_SIZE);
-                console.log(`   Uploading batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} vectors) to Pinecone...`);
-                await pineconeIndex.upsert(batch);
-            }
-            console.log(`✅ Uploaded ${pineconeVectors.length} vectors to Pinecone for ${fileName}`);
-        } else {
-            console.log(`   ⚠️ No valid chunks generated or embedded for ${fileName}.`);
+        // Pinecone Upsert
+        const BATCH_SIZE = 100;
+        for (let i = 0; i < pineconeVectors.length; i += BATCH_SIZE) {
+            const batch = pineconeVectors.slice(i, i + BATCH_SIZE);
+            await pineconeIndex.upsert(batch);
+            console.log(`Uploaded batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} vectors) to Pinecone.`);
         }
+
+        console.log(`✅ Uploaded ${pineconeVectors.length} vectors to Pinecone for ${fileName}`);
+
     } catch (err) {
-        console.error(`❌ Failed processing ${fileName}:`, err.message, err.stack);
+        console.error(`❌ Failed processing ${fileName}:`, err.message);
     }
 }
+
 
 async function vectorizeFolder(folderPath, collection) { // Pass collection down
     const files = fs.readdirSync(folderPath).filter(file => file.endsWith('.pdf'));
