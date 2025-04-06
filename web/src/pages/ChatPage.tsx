@@ -1,10 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import MainLayout from '../layouts/MainLayout';
 import ChatMessage from '../components/ChatMessage';
 import ChatInput from '../components/ChatInput';
 import StatusDisplay from '../components/StatusDisplay';
 import useChat from '../hooks/useChat';
-import useSSE from '../hooks/useSSE';
 import usePDFViewer from '../hooks/usePDFViewer';
 
 export default function ChatPage() {
@@ -14,12 +13,9 @@ export default function ChatPage() {
     chatHistory,
     isLoading,
     handleAsk,
-    chatEndRef
+    chatEndRef,
+    currentStatus
   } = useChat();
-  
-  const {
-    currentStatus,
-  } = useSSE();
   
   const {
     currentPdfUrl,
@@ -30,6 +26,11 @@ export default function ChatPage() {
     onDocumentLoadSuccess,
     onDocumentLoadError,
   } = usePDFViewer();
+
+  // Debug status updates
+  useEffect(() => {
+      console.log('ChatPage UI Status Update:', currentStatus);
+  }, [currentStatus]);
 
   return (
     <MainLayout>
@@ -59,27 +60,35 @@ export default function ChatPage() {
               />
             ))}
 
-            {/* Status Updates */}
-            {isLoading && currentStatus && (
-              <StatusDisplay 
-                status={currentStatus} 
-                isConnected={true}
-                connectionError={null}
-                onReconnect={() => {}}
-              />
-            )}
-
-            {/* Loader */}
-            {isLoading && !currentStatus && (
-              <div className="flex justify-start">
-                <div className="bg-white text-gray-500 rounded-2xl py-3 px-4 max-w-[80%] shadow-lg border border-gray-100 italic">
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                    <p>🤖 Thinking...</p>
+            {/* Render StatusDisplay OR Loader when isLoading */}
+            
+            {isLoading ? (
+              currentStatus && currentStatus.step ? (
+                <div className="my-4">
+                  <StatusDisplay 
+                    status={{
+                      step: currentStatus.step, // Use guaranteed step
+                      message: currentStatus.message || '...' // Fallback message
+                    }}
+                    isConnected={true}
+                    connectionError={null}
+                    onReconnect={() => {}}
+                  />
+                </div>
+              ) : (
+                <div className="flex justify-start my-4">
+                  <div className="bg-white text-gray-500 rounded-2xl py-3 px-4 max-w-[80%] shadow-lg border border-gray-100 italic">
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                      <p>🤖 Thinking...</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )
+            ) : null}
+            
+            {/* Optionally, display final 'complete' status briefly even after isLoading is false?
+                Handled by useSSE timeout currently. If needed, add logic here. */}
             
             <div ref={chatEndRef} className="h-4" />
           </div>
