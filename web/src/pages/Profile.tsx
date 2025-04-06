@@ -1,55 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
-import { updateUserProfile, changeUserPassword } from '../utils/firebase';
 import MainLayout from '../layouts/MainLayout';
+import { useUserStore } from '../stores/userStore';
+import { api } from '../services/api';
+import { useToast } from '../components/ToastComp';
 
 const Profile = () => {
-  const { currentUser } = useAuth();
+  const { user } = useUserStore();
+  const toast = useToast();
   
   // Profile form state
-  const [displayName, setDisplayName] = useState('');
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [profileSuccess, setProfileSuccess] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [profileLoading, setProfileLoading] = useState(false);
   
   // Password form state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
-
-  // Check if user is signed in with Google
-  const isGoogleUser = currentUser?.providerData?.some(
-    provider => provider.providerId === 'google.com'
-  );
 
   // Initialize form with current user data
   useEffect(() => {
-    if (currentUser) {
-      setDisplayName(currentUser.displayName || '');
+    if (user) {
+      setFirstName(user.first_name || '');
+      setLastName(user.last_name || '');
     }
-  }, [currentUser]);
+  }, [user]);
 
   // Handle profile update
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setProfileError(null);
-    setProfileSuccess(false);
     setProfileLoading(true);
     
     try {
-      const result = await updateUserProfile(displayName);
+      await api.auth.update({
+        first_name: firstName,
+        last_name: lastName
+      });
       
-      if (result.error) {
-        setProfileError(result.error);
-      } else {
-        setProfileSuccess(true);
-      }
-    } catch (err: any) {
-      setProfileError(err.message || 'Failed to update profile');
+      toast({
+        type: 'success',
+        message: "Profile updated successfully!"
+      });
+    } catch (error: any) {
+      toast({
+        type: 'error',
+        message: error.message || 'Failed to update profile'
+      });
     } finally {
       setProfileLoading(false);
     }
@@ -58,41 +56,61 @@ const Profile = () => {
   // Handle password change
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPasswordError(null);
-    setPasswordSuccess(false);
     
     // Validate passwords match
     if (newPassword !== confirmNewPassword) {
-      setPasswordError('New passwords do not match');
+      toast({
+        type: 'error',
+        message: 'New passwords do not match'
+      });
       return;
     }
 
     // Validate password length
     if (newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
+      toast({
+        type: 'error',
+        message: 'Password must be at least 6 characters'
+      });
       return;
     }
     
     setPasswordLoading(true);
     
     try {
-      const result = await changeUserPassword(currentPassword, newPassword);
+      await api.profile.updatePassword({
+        current_password: currentPassword,
+        new_password: newPassword
+      });
       
-      if (result.error) {
-        setPasswordError(result.error);
-      } else {
-        setPasswordSuccess(true);
-        // Clear form fields on success
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmNewPassword('');
-      }
-    } catch (err: any) {
-      setPasswordError(err.message || 'Failed to update password');
+      toast({
+        type: 'success',
+        message: "Password updated successfully!"
+      });
+      
+      // Clear form fields on success
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (error: any) {
+      toast({
+        type: 'error',
+        message: error.message || 'Failed to update password'
+      });
     } finally {
       setPasswordLoading(false);
     }
   };
+
+  if (!user) {
+    return (
+      <MainLayout>
+        <div className="px-4 py-8 text-center">
+          <p>Please log in to view your profile.</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -113,31 +131,33 @@ const Profile = () => {
               {/* Profile Information Section */}
               <section className="mb-10">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Profile Information</h2>
-                
-                {profileError && (
-                  <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4">
-                    {profileError}
-                  </div>
-                )}
-                
-                {profileSuccess && (
-                  <div className="bg-green-50 text-green-600 px-4 py-3 rounded-lg mb-4">
-                    Profile updated successfully!
-                  </div>
-                )}
 
                 <form onSubmit={handleProfileUpdate} className="space-y-4">
-                  <div>
-                    <label htmlFor="displayName" className="block text-gray-700 font-medium mb-1">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      id="displayName"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="firstName" className="block text-gray-700 font-medium mb-1">
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        id="firstName"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="lastName" className="block text-gray-700 font-medium mb-1">
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        id="lastName"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -147,7 +167,7 @@ const Profile = () => {
                     <input
                       type="email"
                       id="email"
-                      value={currentUser?.email || ''}
+                      value={user?.email || ''}
                       disabled
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500"
                     />
@@ -166,104 +186,62 @@ const Profile = () => {
                 </form>
               </section>
 
-              {/* Change Password Section - Only show for email/password users */}
-              {!isGoogleUser ? (
-                <section>
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Change Password</h2>
-                  
-                  {passwordError && (
-                    <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4">
-                      {passwordError}
-                    </div>
-                  )}
-                  
-                  {passwordSuccess && (
-                    <div className="bg-green-50 text-green-600 px-4 py-3 rounded-lg mb-4">
-                      Password updated successfully!
-                    </div>
-                  )}
+              {/* Change Password Section */}
+              <section>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">Change Password</h2>
 
-                  <form onSubmit={handlePasswordChange} className="space-y-4">
-                    <div>
-                      <label htmlFor="currentPassword" className="block text-gray-700 font-medium mb-1">
-                        Current Password
-                      </label>
-                      <input
-                        type="password"
-                        id="currentPassword"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="newPassword" className="block text-gray-700 font-medium mb-1">
-                        New Password
-                      </label>
-                      <input
-                        type="password"
-                        id="newPassword"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="confirmNewPassword" className="block text-gray-700 font-medium mb-1">
-                        Confirm New Password
-                      </label>
-                      <input
-                        type="password"
-                        id="confirmNewPassword"
-                        value={confirmNewPassword}
-                        onChange={(e) => setConfirmNewPassword(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                        required
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={passwordLoading}
-                      className="bg-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
-                    >
-                      {passwordLoading ? 'Updating...' : 'Change Password'}
-                    </button>
-                  </form>
-                </section>
-              ) : (
-                <section>
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Password Management</h2>
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                    <div className="flex items-start">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 mt-0.5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clipRule="evenodd" />
-                      </svg>
-                      <div>
-                        <p className="text-blue-800 font-medium">Google Account</p>
-                        <p className="text-blue-600 mt-1">
-                          You signed in with Google. Password management is handled through your Google account.
-                        </p>
-                        <a 
-                          href="https://myaccount.google.com/security" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center mt-3 text-blue-700 hover:text-blue-900 font-medium"
-                        >
-                          Manage Google Account
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
-                        </a>
-                      </div>
-                    </div>
+                <form onSubmit={handlePasswordChange} className="space-y-4">
+                  <div>
+                    <label htmlFor="currentPassword" className="block text-gray-700 font-medium mb-1">
+                      Current Password
+                    </label>
+                    <input
+                      type="password"
+                      id="currentPassword"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      required
+                    />
                   </div>
-                </section>
-              )}
+
+                  <div>
+                    <label htmlFor="newPassword" className="block text-gray-700 font-medium mb-1">
+                      New Password
+                    </label>
+                    <input
+                      type="password"
+                      id="newPassword"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="confirmNewPassword" className="block text-gray-700 font-medium mb-1">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type="password"
+                      id="confirmNewPassword"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={passwordLoading}
+                    className="bg-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
+                  >
+                    {passwordLoading ? 'Updating...' : 'Change Password'}
+                  </button>
+                </form>
+              </section>
             </div>
           </motion.div>
         </div>
