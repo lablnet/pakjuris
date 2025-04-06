@@ -1,23 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import usePDFViewer from './usePDFViewer';
-import apiConfig from '../config/api';
 import useStatusStore from '../stores/statusStore';
 import useSSE from './useSSE';
-
-// Create axios instance
-const api = axios.create({
-  baseURL: apiConfig.apiBaseUrl,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
+import { useNavigate } from 'react-router-dom';
+import { api } from '../services/api';
 
 
 interface ChatMessage {
   question: string;
   answer: {
-    intent: 'GREETING' | 'LEGAL_QUERY' | 'CLARIFICATION_NEEDED' | 'IRRELEVANT' | 'NO_MATCH';
+    intent: 'GREETING' | 'LEGAL_QUERY' | 'CLARIFICATION_NEEDED' | 'IRRELEVANT' | 'NO_MATCH' | 'DISCUSSION';
     summary: string;
     title?: string;
     year?: string;
@@ -28,11 +21,13 @@ interface ChatMessage {
   };
 }
 
-const useChat = () => {
+const useChat = (initialConversationId?: string) => {
   const [question, setQuestion] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | undefined>(initialConversationId);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   
   const { clientId, clearStatusUpdates } = useSSE();
   const { currentStatus } = useStatusStore();
@@ -53,6 +48,53 @@ const useChat = () => {
     clearPDFViewer
   } = usePDFViewer();
 
+  // Load conversation messages if conversationId is provided
+  useEffect(() => {
+    if (conversationId) {
+      loadConversation(conversationId);
+    } else {
+      setChatHistory([]);
+    }
+  }, [conversationId]);
+
+  const loadConversation = async (convId: string) => {
+    try {
+      setIsLoading(true);
+      const response = await api.chat.conversations.get(convId);
+      const conversation = response.data;
+      
+      // Transform messages to chat history format
+      const messages = conversation.messages || [];
+      const formattedHistory: ChatMessage[] = [];
+      
+      for (let i = 0; i < messages.length; i += 2) {
+        const userMsg = messages[i];
+        const assistantMsg = messages[i + 1];
+        
+        if (userMsg && assistantMsg && userMsg.role === 'user' && assistantMsg.role === 'assistant') {
+          formattedHistory.push({
+            question: userMsg.content,
+            answer: {
+              intent: assistantMsg.metadata?.intent || 'LEGAL_QUERY',
+              summary: assistantMsg.content,
+              title: assistantMsg.metadata?.title,
+              year: assistantMsg.metadata?.year,
+              pageNumber: assistantMsg.metadata?.pageNumber,
+              originalText: assistantMsg.metadata?.originalText,
+              pdfUrl: assistantMsg.metadata?.pdfUrl,
+              matchScore: assistantMsg.metadata?.matchScore
+            }
+          });
+        }
+      }
+      
+      setChatHistory(formattedHistory);
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Improved scroll to bottom effect that handles edge cases better
   useEffect(() => {
@@ -93,11 +135,19 @@ const useChat = () => {
     setChatHistory((prev) => [...prev, newUserMessage as ChatMessage]);
 
     try {
-      const res = await api.post('/api/chat/query', {
+      const res = await api.chat.query({
         question: userQuestion,
-        clientId: clientId // Send clientId to server
+        clientId: clientId, // Send clientId to server
+        conversationId: conversationId // Send conversationId if it exists
       });
       const responseData = res.data;
+
+      // Update the conversation ID if this is a new conversation
+      if (responseData.conversationId && !conversationId) {
+        setConversationId(responseData.conversationId);
+        // Update URL to include conversation ID
+        navigate(`/chat/${responseData.conversationId}`, { replace: true });
+      }
 
       // Update the last message in history with the actual answer
       setChatHistory((prev) => {
@@ -143,6 +193,17 @@ const useChat = () => {
     }
   };
 
+  const handleSelectConversation = (id: string) => {
+    setConversationId(id);
+    navigate(`/chat/${id}`);
+  };
+
+  const startNewChat = () => {
+    setConversationId(undefined);
+    setChatHistory([]);
+    navigate('/chat');
+  };
+
   return {
     question,
     setQuestion,
@@ -158,6 +219,9 @@ const useChat = () => {
     onDocumentLoadError,
     handleAsk,
     chatEndRef,
+    conversationId,
+    handleSelectConversation,
+    startNewChat
   };
 };
 

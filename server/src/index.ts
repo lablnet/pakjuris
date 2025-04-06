@@ -33,6 +33,7 @@ app.use('/api', authRoutes);
 
 // Routes below this middleware require authentication
 app.use(asyncHandler(authMiddleware));
+
 app.use('/api/chat', chatRoutes);
 
 // Global Error Handler

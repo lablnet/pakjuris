@@ -8,7 +8,7 @@ interface ChatMessageProps {
   message: {
     question: string;
     answer: {
-      intent: 'GREETING' | 'LEGAL_QUERY' | 'CLARIFICATION_NEEDED' | 'IRRELEVANT' | 'NO_MATCH';
+      intent: 'GREETING' | 'LEGAL_QUERY' | 'CLARIFICATION_NEEDED' | 'IRRELEVANT' | 'NO_MATCH' | 'DISCUSSION';
       summary: string;
       title?: string;
       year?: string;

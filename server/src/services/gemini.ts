@@ -70,6 +70,52 @@ async function generateText(prompt: string): Promise<string> {
 }
 
 /**
+ * Generate a response using a chat history
+ * @param question - The current user question
+ * @param history - The conversation history
+ * @returns The generated response
+ */
+export const generateResponse = async (
+  question: string, 
+  history: Array<{role: string, content: string}>
+): Promise<string> => {
+  try {
+    console.log(`Generating chat response with model ${process.env.GEMINI_GENERATION_MODEL || 'gemini-1.5-pro'}...`);
+    
+    const chat = model.startChat({
+      history: history.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }]
+      })),
+      generationConfig: {
+        ...generationConfig,
+        maxOutputTokens: 800 // Increase token limit for discussion mode
+      }
+    });
+    
+    const result = await chat.sendMessage(question);
+    const response = result.response;
+    
+    // Check for blocked content
+    if (!response || !response.text()) {
+      const blockReason = response?.promptFeedback?.blockReason || 'Unknown';
+      console.warn(`⚠️ Gemini chat generation blocked or empty. Reason: ${blockReason}`);
+      
+      if (blockReason === 'SAFETY') {
+        throw new Error("Content generation blocked due to safety settings.");
+      }
+      throw new Error("Failed to generate text. Empty response from model.");
+    }
+    
+    console.log("Chat response generation successful.");
+    return response.text().trim();
+  } catch (error) {
+    console.error("❌ Error generating chat response with Gemini:", error);
+    throw error;
+  }
+};
+
+/**
  * Classifies the intent of a user question
  * @param question - The user's question
  * @returns The classified intent
@@ -79,7 +125,7 @@ export const classifyIntent = async (question: string): Promise<string> => {
   const classification = await generateText(prompt);
   
   // Validate classification
-  const validIntents = ['GREETING', 'LEGAL_QUERY', 'CLARIFICATION_NEEDED', 'IRRELEVANT'];
+  const validIntents = ['GREETING', 'LEGAL_QUERY', 'CLARIFICATION_NEEDED', 'IRRELEVANT', 'DISCUSSION'];
   if (validIntents.includes(classification)) {
     return classification;
   } else {
@@ -127,6 +173,23 @@ export const generateSummary = async (
   
   const prompt = prompts.SUMMARY_GENERATION_PROMPT(question, contextChunks);
   return await generateText(prompt);
+};
+
+/**
+ * Generates a name for a conversation based on the first message
+ * @param message - The first message in the conversation
+ * @returns A short, descriptive name for the conversation
+ */
+export const generateConversationName = async (message: string): Promise<string> => {
+  const prompt = prompts.CONVERSATION_NAME_PROMPT(message);
+  const name = await generateText(prompt);
+  
+  if (!name || name.length === 0) {
+    console.warn("⚠️ Failed to generate conversation name. Using default.");
+    return "New Conversation";
+  }
+  
+  return name;
 };
 
 /**

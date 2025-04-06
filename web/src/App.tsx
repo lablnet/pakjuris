@@ -40,6 +40,7 @@ export default function App() {
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/chat" element={<ChatPage />} />
+              <Route path="/chat/:conversationId" element={<ChatPage />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
             

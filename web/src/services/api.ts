@@ -125,6 +125,22 @@ const api = {
     updatePassword: (data: { current_password: string; new_password: string }): Promise<{ message: string }> =>
       axiosWrapper(axiosInstance.patch('/user/me/password/', data)),
   },
+  chat: {
+    conversations: {
+      list: (): Promise<any> =>
+        axiosWrapper(axiosInstance.get('/chat/conversations/')),
+      get: (id: string): Promise<any> =>
+        axiosWrapper(axiosInstance.get(`/chat/conversations/${id}`)),
+      create: (data: any): Promise<any> =>
+        axiosWrapper(axiosInstance.post('/chat/conversations/', data)),
+      update: (id: string, data: any): Promise<any> =>
+        axiosWrapper(axiosInstance.put(`/chat/conversations/${id}`, data)),
+      delete: (id: string): Promise<any> =>
+        axiosWrapper(axiosInstance.delete(`/chat/conversations/${id}`)),
+    },
+    query: (data: any): Promise<any> =>
+      axiosWrapper(axiosInstance.post('/chat/query/', data)),
+  }
 };
 export { api, axiosInstance };
 export default api;

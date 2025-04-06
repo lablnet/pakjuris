@@ -28,10 +28,11 @@ Analyze the user's question about Pakistani Law and classify its intent into ONE
 - LEGAL_QUERY: User asks a specific question about Pakistani law, legal concepts, acts, sections, procedures, or requests information about a specific legal entity mentioned. (e.g., "What is bail?", "Explain section 10 of Companies Act 2017", "Tell me about prohibited company names")
 - CLARIFICATION_NEEDED: User's question is too vague, ambiguous, lacks a specific subject, or mentions a concept without asking a question about it. (e.g., "What about the law?", "Section 5?", "Companies Act 2017." <- statement, not a question)
 - IRRELEVANT: User's question is off-topic, unrelated to Pakistani law, or nonsensical.
+- DISCUSSION: User wants to discuss legal concepts or have a conversation about legal topics.
 
 User Question: "${question}"
 
-Classification:`; // Expecting one word: GREETING, LEGAL_QUERY, CLARIFICATION_NEEDED, or IRRELEVANT
+Classification:`; // Expecting one word: GREETING, LEGAL_QUERY, CLARIFICATION_NEEDED, IRRELEVANT, or DISCUSSION
 
 const SEARCH_QUERY_GENERATION_PROMPT = (question: string) => `
 Based on the following user question about Pakistani law, generate 3 to 5 concise and relevant search query phrases suitable for a vector database search. Focus on key legal terms, concepts, act names, or section numbers mentioned. Output ONLY the search queries, separated by newlines.
@@ -59,8 +60,16 @@ Excerpt ${index + 1} (Source: ${chunk.title} (${chunk.year}), Page: ${chunk.page
 
 Summary:`;
 
+const CONVERSATION_NAME_PROMPT = (message: string) => `
+Generate a short, concise title (3-5 words) for a conversation that starts with this message:
+"${message}"
+
+The title should capture the essence of the topic or question. Don't use quotation marks in your response.
+Response (title only):`;
+
 export {
   INTENT_CLASSIFICATION_PROMPT,
   SEARCH_QUERY_GENERATION_PROMPT,
-  SUMMARY_GENERATION_PROMPT
+  SUMMARY_GENERATION_PROMPT,
+  CONVERSATION_NAME_PROMPT
 };

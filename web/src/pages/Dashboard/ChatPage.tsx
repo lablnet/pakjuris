@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import MainLayout from '../../layouts/MainLayout';
 import ChatMessage from '../../components/chat/ChatMessage';
 import ChatInput from '../../components/chat/ChatInput';
@@ -7,6 +8,9 @@ import useChat from '../../hooks/useChat';
 import usePDFViewer from '../../hooks/usePDFViewer';
 
 export default function ChatPage() {
+  // Get conversation ID from URL params
+  const { conversationId } = useParams<{ conversationId: string }>();
+  
   const {
     question,
     setQuestion,
@@ -14,8 +18,10 @@ export default function ChatPage() {
     isLoading,
     handleAsk,
     chatEndRef,
-    currentStatus
-  } = useChat();
+    currentStatus,
+    conversationId: activeConversationId,
+    handleSelectConversation
+  } = useChat(conversationId);
   
   const {
     currentPdfUrl,
@@ -33,7 +39,10 @@ export default function ChatPage() {
   }, [currentStatus]);
 
   return (
-    <MainLayout>
+    <MainLayout 
+      conversationId={activeConversationId}
+      onSelectConversation={handleSelectConversation}
+    >
       <div className="flex flex-col p-4 gap-4 h-full">
         
         {/* Chat History Area */}

@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 export interface DocumentDetails {
   title: string;
   year: string;
-  pdfUrl: string;
+  url: string;
   numPages?: number;
   categories?: string[];
 }
@@ -16,7 +16,7 @@ export interface DocumentDetails {
 const documentSchema = new mongoose.Schema({
   title: { type: String, required: true },
   year: { type: String, required: true },
-  pdfUrl: { type: String, required: true },
+  url: { type: String, required: true },
   numPages: { type: Number },
   categories: [String],
   createdAt: { type: Date, default: Date.now },
@@ -57,7 +57,7 @@ export const findDocumentDetails = async (title: string, year: string): Promise<
     return {
       title: document.title,
       year: document.year,
-      pdfUrl: document.pdfUrl,
+      url: document.url,
       numPages: document.numPages,
       categories: document.categories
     };
