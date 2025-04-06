@@ -24,7 +24,7 @@ const useAuth = () => {
       });
       if (response!.user.isProfileComplete) {
         setTimeout(() => {
-          navigate('/explore');
+          navigate('/');
         }, 3000);
         return
       }
