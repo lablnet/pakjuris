@@ -15,6 +15,7 @@ import About from './pages/Site/About';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import ResetPassword from './pages/Auth/ResetPassword';
+import ResetSuccess from './pages/Auth/ResetSuccess';
 import Profile from './pages/Dashboard/Profile';
 import NotFound from './pages/NotFound';
 
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/reset-password/success" element={<ResetSuccess />} />
             
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>

@@ -1,30 +1,171 @@
-import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail } from 'lucide-react';
+import { Mail, Lock, KeyRound } from 'lucide-react';
 import MainLayout from '../../layouts/MainLayout';
-import useAuth from '../../hooks/auth/useAuth';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
+import useReset from '../../hooks/auth/useReset';
 
 const ResetPassword = () => {
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const { resetPassword, loading } = useAuth();
+  const {
+    currentStep,
+    loading,
+    email,
+    setEmail,
+    code,
+    setCode,
+    newPassword,
+    setNewPassword,
+    confirmPassword,
+    setConfirmPassword,
+    resendCountdown,
+    handleEmailSubmit,
+    handleCodeSubmit,
+    handleResendCode,
+    handlePasswordSubmit,
+  } = useReset();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(false);
-    
-    try {
-      const result = await resetPassword(email);
-      if (result) {
-        setSuccess(true);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to send password reset email');
+  const renderEmailStep = () => (
+    <>
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+        <h1 className="text-2xl font-bold">Reset Your Password</h1>
+        <p className="opacity-90">We'll send you a verification code to reset your password</p>
+      </div>
+
+      <div className="p-6">
+        <form onSubmit={(e) => { e.preventDefault(); handleEmailSubmit(); }} className="space-y-4">
+          <Input
+            id="email"
+            type="email"
+            label="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            leftIcon={<Mail size={18} />}
+            required
+          />
+
+          <Button
+            type="submit"
+            isLoading={loading}
+            disabled={loading}
+            fullWidth
+          >
+            {loading ? 'Sending...' : 'Send Reset Code'}
+          </Button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-gray-600">
+            Remember your password?{' '}
+            <Link to="/login" className="text-blue-600 hover:text-blue-800 font-medium">
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderOTPStep = () => (
+    <>
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+        <h1 className="text-2xl font-bold">Verify Your Email</h1>
+        <p className="opacity-90">We've sent a code to {email}</p>
+      </div>
+
+      <div className="p-6">
+        <form onSubmit={(e) => { e.preventDefault(); handleCodeSubmit(code); }} className="space-y-4">
+          <Input
+            id="otp"
+            type="text"
+            label="Enter Verification Code"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            leftIcon={<KeyRound size={18} />}
+            placeholder="6-digit code"
+            maxLength={6}
+            required
+          />
+
+          <Button
+            type="submit"
+            isLoading={loading}
+            disabled={loading}
+            fullWidth
+          >
+            {loading ? 'Verifying...' : 'Verify Code'}
+          </Button>
+
+          <div className="text-center mt-4">
+            <Button
+              type="button"
+              onClick={handleResendCode}
+              disabled={resendCountdown > 0 || loading}
+              variant="ghost"
+              size="sm"
+            >
+              {resendCountdown > 0 ? `Resend code in ${resendCountdown}s` : 'Resend code'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </>
+  );
+
+  const renderPasswordStep = () => (
+    <>
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+        <h1 className="text-2xl font-bold">Set New Password</h1>
+        <p className="opacity-90">Create a secure new password for your account</p>
+      </div>
+
+      <div className="p-6">
+        <form onSubmit={(e) => { e.preventDefault(); handlePasswordSubmit(); }} className="space-y-4">
+          <Input
+            id="newPassword"
+            type="password"
+            label="New Password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            leftIcon={<Lock size={18} />}
+            isPasswordToggleable
+            required
+          />
+
+          <Input
+            id="confirmPassword"
+            type="password"
+            label="Confirm New Password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            leftIcon={<Lock size={18} />}
+            isPasswordToggleable
+            required
+          />
+
+          <Button
+            type="submit"
+            isLoading={loading}
+            disabled={loading}
+            fullWidth
+          >
+            {loading ? 'Updating...' : 'Update Password'}
+          </Button>
+        </form>
+      </div>
+    </>
+  );
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 1:
+        return renderEmailStep();
+      case 2:
+        return renderOTPStep();
+      case 3:
+        return renderPasswordStep();
+      default:
+        return renderEmailStep();
     }
   };
 
@@ -37,58 +178,12 @@ const ResetPassword = () => {
           transition={{ duration: 0.5 }}
           className="bg-white rounded-2xl shadow-lg overflow-hidden w-full max-w-md"
         >
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
-            <h1 className="text-2xl font-bold">Reset Your Password</h1>
-            <p className="opacity-90">We'll send you a verification code to reset your password</p>
-          </div>
-
-          <div className="p-6">
-            {error && (
-              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4">
-                {error}
-              </div>
-            )}
-            
-            {success && (
-              <div className="bg-green-50 text-green-600 px-4 py-3 rounded-lg mb-4">
-                OTP sent! Check your inbox for the verification code.
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                id="email"
-                type="email"
-                label="Email Address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                leftIcon={<Mail size={18} />}
-                required
-              />
-
-              <Button
-                type="submit"
-                isLoading={loading}
-                disabled={loading}
-                fullWidth
-              >
-                {loading ? 'Sending...' : 'Send Reset Code'}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-gray-600">
-                Remember your password?{' '}
-                <Link to="/login" className="text-blue-600 hover:text-blue-800 font-medium">
-                  Sign in
-                </Link>
-              </p>
-            </div>
-          </div>
+          {renderCurrentStep()}
         </motion.div>
       </div>
     </MainLayout>
   );
 };
 
-export default ResetPassword; 
+export default ResetPassword;
+ 

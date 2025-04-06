@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { parseErrors } from '../../utils/error';
@@ -74,7 +74,7 @@ const useReset = () => {
       }
     };
 
-    const { code, setCode, resendCountdown, handleSendOTP, handleValidateOTP, handleResendCode } = useOTP(
+    const { code, setCode, resendCountdown, handleResendCode } = useOTP(
       handleEmailSubmit,
       handleCodeSubmit,
       loading,
@@ -109,7 +109,7 @@ const useReset = () => {
       try {
         setLoading(true)
         await api.auth.reset.updatePassword({ email, otp: code, password: newPassword, repeat: confirmPassword });
-        navigate(`/forgot-password/success`);
+        navigate(`/reset-password/success`);
       } catch (error: any) {
         let err = parseErrors(error.response.data)
         console.log ("Error occured! ", err)
