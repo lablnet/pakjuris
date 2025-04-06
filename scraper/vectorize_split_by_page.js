@@ -46,6 +46,37 @@ async function initDB() {
     return mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
 }
 
+// Function to attempt splitting text into pages based on common patterns
+function splitTextIntoPages(fullText, numPages) {
+    // Strategy 1: Look for form feed character (\f) - often used by PDF libraries
+    let pages = fullText.split('\f');
+    console.log(`   Split attempt 1 (form feed): Found ${pages.length} potential pages.`);
+
+    // Strategy 2: If form feed doesn't work well, try regex for "Page X of Y" (less reliable)
+    if (pages.length <= 1 && numPages > 1) {
+        console.log(`   Form feed split ineffective, trying regex split...`);
+        // Regex to split by "Page <number> of <total>" potentially followed by whitespace
+        // Making the " of <total>" part optional for robustness
+        pages = fullText.split(/Page\s+\d+(\s+of\s+\d+)?\s*/i);
+        console.log(`   Split attempt 2 (regex): Found ${pages.length} potential pages.`);
+        // Regex split often leaves an empty first element if the pattern is at the start
+        if (pages[0].trim() === '') {
+            pages.shift();
+        }
+    }
+
+    // Basic Filtering: Remove very short "pages" that might be artifacts
+    const cleanedPages = pages.map(p => p.trim()).filter(p => p.length > 50); // Keep pages with some content
+    console.log(`   Filtered down to ${cleanedPages.length} pages with significant content.`);
+
+    // Warning if page count mismatch is large
+    if (Math.abs(cleanedPages.length - numPages) > numPages * 0.1) { // Allow 10% difference
+        console.warn(`   ⚠️ Potential page split mismatch: pdf-parse reported ${numPages} pages, but split resulted in ${cleanedPages.length} usable text pages.`);
+    }
+
+    return cleanedPages;
+}
+
 // More robust lookup - consider normalizing titles if needed
 async function findExistingDoc(collection, year, title) {
     const normalizedTitle = title.toLowerCase().replace(/,/g, '').trim();
@@ -68,13 +99,18 @@ async function vectorizePDF(filePath, collection) {
     console.log(`\n📄 Processing: ${fileName}`);
     try {
         const pdfBuffer = fs.readFileSync(filePath);
-        const pdfData = await pdfParse(pdfBuffer);
+        const pdfData = await pdfParse(pdfBuffer, {
+            pagerender: (pageData) => {
+                // This callback can extract text per page, but it's complex to aggregate cleanly here.
+                // We'll primarily rely on pdfData.numpages and split the full text.
+                return ''; // Don't need the rendered text from here
+            }
+        });
+        const totalPages = pdfData.numpages;
+        console.log(`   PDF has ${totalPages} pages.`);
 
-        let cleanedText = pdfData.text.replace(/\s\s+/g, ' ').replace(/\n\n+/g, '\n');
-        // Remove potential headers/footers (example - adjust regex)
-        cleanedText = cleanedText.replace(/^Page \d+ of \d+\s*/gm, '');
-        // Normalize whitespace
-        cleanedText = cleanedText.replace(/\s\s+/g, ' ').replace(/\n\n+/g, '\n').trim();
+        // Basic text cleanup on the entire extracted text
+        let fullCleanedText = pdfData.text.replace(/\s\s+/g, ' ').replace(/\n\n+/g, '\n').trim();
 
         const baseName = fileName.replace('.pdf', '');
         const yearMatch = baseName.match(/^(\d{4})_/);
@@ -90,26 +126,28 @@ async function vectorizePDF(filePath, collection) {
         const url = existingDoc.url;
         console.log(`Using URL: ${url}`);
 
-        const splitter = new RecursiveCharacterTextSplitter({ chunkSize: CHUNK_SIZE, chunkOverlap: CHUNK_OVERLAP });
-        const docs = await splitter.createDocuments([cleanedText]);
-        const chunks = docs.map(doc => doc.pageContent);
-        console.log(`   Split into ${chunks.length} Langchain chunks`);
+        const pageChunks = splitTextIntoPages(fullCleanedText, totalPages);
+        console.log(`   Split into ${pageChunks.length} pages chunks`);
 
         const pineconeVectors = [];
 
-        for (let i = 0; i < chunks.length; i++) {
-            const chunkText = chunks[i];
-            if (!chunkText || chunkText.length < 20) continue;
+        for (let i = 0; i < pageChunks.length; i++) {
+            const pageText = pageChunks[i];
+            const pageNumber = i + 1;
+            if (!pageText || pageText.length < 50) { // Increase minimum length for pages
+                console.log(`   Skipping embedding for page ${pageNumber} (too short).`);
+                continue;
+            }
 
             try {
-                console.log(`   Embedding chunk ${i + 1}/${chunks.length} using Azure OpenAI...`);
+                console.log(`   Embedding page ${pageNumber} using Azure OpenAI...`);
 
                 // --- <<< CORRECT Call Azure OpenAI for Embedding using 'openai' library >>> ---
                 const embeddingResult = await azureClient.embeddings.create({
                     // The 'model' parameter is actually IGNORED when baseURL points directly to a deployment.
                     // The deployment name is already part of the baseURL.
                     // model: AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME, // This is not strictly needed here but doesn't hurt
-                    input: chunkText // Pass the single chunk string directly
+                    input: pageText // Pass the single chunk string directly
                 });
                 // --- <<< End CORRECTED Azure OpenAI Call >>> ---
 
@@ -125,10 +163,9 @@ async function vectorizePDF(filePath, collection) {
                     id: `${existingDoc._id.toString()}_chunk_${i}`,
                     values: vector,
                     metadata: {
-                        // Page number info might be less accurate with RecursiveCharacterTextSplitter
-                        // pageNumber: pdfData.numpages ? i + 1 : i + 1, // Keep if useful, but less precise
+                        pageNumber: pageNumber,
                         chunkIndex: i,
-                        text: chunkText,
+                        text: pageText,
                         title: existingDoc.title, // Use consistent title from DB
                         year: existingDoc.year, // Use consistent year from DB
                         fileName,
