@@ -26,13 +26,12 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
     }
     
     try {
-      // Get fresh token from Firebase
+      // Get fresh token from Firebase - store only raw token
       const rawToken = await user.getIdToken(true);
-      const formattedToken = `Bearer ${rawToken}`;
       
       // Update store state
-      set({ token: formattedToken });
-      return formattedToken;
+      set({ token: rawToken });
+      return rawToken;
     } catch (error) {
       console.error('Error getting Firebase token:', error);
       set({ token: null });

@@ -19,6 +19,7 @@ router.post('/', async(req, res, next) => {
     try {
         // Check if user is authenticated
         const user = req.user;
+        console.log(user);
         if (user) {
             console.log(`Processing query for authenticated user: ${user.email || user.uid}`);
         } else {

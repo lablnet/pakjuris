@@ -8,11 +8,20 @@ const pineconeService = require('./services/pinecone');
 const requestLogger = require('./middleware/requestLogger');
 const errorHandler = require('./middleware/errorHandler');
 const authMiddleware = require('./middleware/auth');
-const queryRoutes = require('./routes/query'); // Import the router
-const { router: statusRoutes } = require('./routes/status'); // Import the SSE router
+const queryRoutes = require('./routes/query');
+const { router: statusRoutes } = require('./routes/status');
+var serviceAccount = require("./pakjuris-fa475-firebase-adminsdk-fbsvc-c1a621bbed.json");
 
-// Initialize Firebase Admin SDK - still needed for authentication
-admin.initializeApp();
+// Initialize Firebase Admin SDK with service account credentials
+try {
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+    });
+    console.log('✅ Firebase Admin SDK initialized successfully');
+} catch (error) {
+    console.error('❌ Error initializing Firebase Admin SDK:', error);
+    process.exit(1);
+}
 
 // Create Express app
 const app = express();

@@ -30,6 +30,11 @@ const StatusDisplay: React.FC<StatusDisplayProps> = ({
   connectionError = null, 
   onReconnect 
 }) => {
+  // Guard against null or undefined status
+  if (!status || !status.step) {
+    return null;
+  }
+  
   const currentStepIndex = Object.keys(steps).indexOf(status.step);
   const totalSteps = Object.keys(steps).length;
   const stepsArray = Object.entries(steps);
@@ -93,8 +98,8 @@ const StatusDisplay: React.FC<StatusDisplayProps> = ({
         </div>
       </motion.div>
 
-      {/* Connection Status - show only if there's an error */}
-      {!isConnected && (
+      {/* Connection Status - show error or connected status */}
+      {!isConnected ? (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -114,6 +119,19 @@ const StatusDisplay: React.FC<StatusDisplayProps> = ({
                   Reconnect
                 </button>
               )}
+            </div>
+          </div>
+        </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex justify-start mt-2"
+        >
+          <div className="bg-green-50 text-green-700 rounded-2xl py-2 px-4 max-w-[80%] shadow-sm border border-green-200">
+            <div className="flex items-center gap-2">
+              <span>🟢</span>
+              <p className="text-sm">Connected</p>
             </div>
           </div>
         </motion.div>

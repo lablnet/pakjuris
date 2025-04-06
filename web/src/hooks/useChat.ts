@@ -22,7 +22,8 @@ const updateAuthToken = async () => {
     const token = await getToken();
     
     if (token) {
-      api.defaults.headers.common['Authorization'] = token;
+      // Add the Bearer prefix to the raw token
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       return token;
     } else {
       delete api.defaults.headers.common['Authorization'];

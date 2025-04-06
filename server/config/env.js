@@ -1,32 +1,8 @@
 // config/env.js
 require('dotenv').config();
-const functions = require('firebase-functions');
 
-// Get config from Firebase Functions config or fall back to process.env
+// Get config from environment variables
 const getConfig = (key, defaultValue = null) => {
-    try {
-        // Check if we're in a Firebase Functions environment
-        if (process.env.FUNCTION_TARGET) {
-            // Parse the nested config keys (e.g., 'mongodb.uri')
-            const parts = key.toLowerCase().split('_');
-
-            if (parts.length === 1) {
-                return functions.config()[key.toLowerCase()] || process.env[key] || defaultValue;
-            }
-
-            // Handle nested properties like MONGODB_URI as mongodb.uri in Firebase config
-            const section = parts[0].toLowerCase();
-            const prop = parts.slice(1).join('_').toLowerCase();
-
-            // Try to get from firebase config
-            const fbConfig = functions.config();
-            return (fbConfig[section] && fbConfig[section][prop]) || process.env[key] || defaultValue;
-        }
-    } catch (error) {
-        console.warn(`Unable to read Firebase config for ${key}, falling back to process.env`);
-    }
-
-    // Fallback to process.env
     return process.env[key] || defaultValue;
 };
 
@@ -41,6 +17,7 @@ const config = {
     GEMINI_GENERATION_MODEL: getConfig('GEMINI_GENERATION_MODEL', 'gemini-2.0-flash'),
     GEMINI_EMBEDDING_MODEL: getConfig('GEMINI_EMBEDDING_MODEL', 'text-embedding-004'),
     PINECONE_SCORE_THRESHOLD: getConfig('PINECONE_SCORE_THRESHOLD', 0.55),
+    FIREBASE_PROJECT_ID: getConfig('FIREBASE_PROJECT_ID', 'pakjuris-fa475'),
 };
 
 // Basic validation
