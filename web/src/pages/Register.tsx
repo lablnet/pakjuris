@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import MainLayout from '../layouts/MainLayout';
 import useRegister from '../hooks/auth/useRegister';
 
 const Register = () => {
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
   
   const {
     email,
