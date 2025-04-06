@@ -25,8 +25,10 @@ const useSSE = () => {
   }, [setCurrentStatus]);
 
   useEffect(() => {
-    // Restore connection logic
-    const eventSource = new EventSource(`http://localhost:8000/api/chat/status/${clientIdRef.current}`);
+    const eventSource = new EventSource(
+      `http://localhost:8000/api/chat/status/${clientIdRef.current}`, 
+      { withCredentials: true }
+    );
     eventSourceRef.current = eventSource;
     console.log(`SSE connection initiated with client ID: ${clientIdRef.current} (Hook)`);
 
