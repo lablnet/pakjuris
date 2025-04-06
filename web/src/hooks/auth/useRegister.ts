@@ -1,11 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
-import { useUserStore } from '../../stores/userStore';
 import { parseErrors } from '../../utils/error';
 import { useToast } from '../../components/ToastComp';
 import useOTP from './useOTP';
 import { useRegisterStore } from '../../stores/registerStore';
-import { MeType } from '../../types/api';
 
 const useRegister = () => {
   const {
@@ -28,7 +26,6 @@ const useRegister = () => {
   } = useRegisterStore();
 
   const navigate = useNavigate();
-  const { setUser } = useUserStore();
   const toast = useToast();
 
 
@@ -87,10 +84,9 @@ const useRegister = () => {
   const validateOTP = async (otp: string) => {
     try {
       setLoading(true);
-      const response: MeType = await api.auth.register.validateOTP({ otp, email });
-      setUser(response.user);
+      await api.auth.register.validateOTP({ otp, email });
       toast({type: "success", message: "OTP verified successfully, redirected to account setup" });
-      navigate('/account-setup');
+      navigate('/login');
     } catch (error: any) {
       let err = parseErrors(error.response.data)
         console.log ("Error occured! ", err)
