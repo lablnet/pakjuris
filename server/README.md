@@ -170,4 +170,57 @@ The API is accessible at:
 - The API is implemented using Express.js running within Firebase Functions
 - Services are initialized on first request to the function
 - SSE connections are maintained for real-time status updates with timeout handling
-- Environment variables are read from Firebase Functions config with fallback to .env 
+- Environment variables are read from Firebase Functions config with fallback to .env
+
+# Cryonix Server
+
+Express server application for Cryonix project.
+
+## Local Development
+
+1. Install dependencies:
+   ```
+   npm install
+   ```
+
+2. Set up environment variables:
+   - Create a `.env` file in the root directory
+   - Add necessary environment variables
+
+3. Start development server:
+   ```
+   npm run dev
+   ```
+
+4. The server will be available at `http://localhost:8080` (or the PORT specified in your env)
+
+## Deployment to Cloud Run
+
+1. Build the Docker image:
+   ```
+   docker build -t cryonix-server .
+   ```
+
+2. Test the Docker image locally:
+   ```
+   docker run -p 8080:8080 --env-file .env cryonix-server
+   ```
+
+3. Tag and push to Google Container Registry:
+   ```
+   docker tag cryonix-server gcr.io/[YOUR-PROJECT-ID]/cryonix-server
+   docker push gcr.io/[YOUR-PROJECT-ID]/cryonix-server
+   ```
+
+4. Deploy to Cloud Run:
+   ```
+   gcloud run deploy cryonix-server \
+     --image gcr.io/[YOUR-PROJECT-ID]/cryonix-server \
+     --platform managed \
+     --region [REGION] \
+     --allow-unauthenticated
+   ```
+
+## Authentication
+
+The application uses Firebase Authentication for user authentication. A valid Firebase token is required for protected endpoints. 

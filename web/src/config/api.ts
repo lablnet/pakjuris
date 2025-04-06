@@ -1,5 +1,5 @@
 const config = {
-  apiBaseUrl: "https://us-central1-pakjuris-fa475.cloudfunctions.net/api",
+  apiBaseUrl: "http://localhost:8000",
   
   // Connection settings
   connection: {
