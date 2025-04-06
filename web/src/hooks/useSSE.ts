@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import apiConfig from '../config/api';
 import { auth } from '../utils/firebase';
 import { useAuthStore } from '../stores/authStore';
-import { fetchEventSource } from '@microsoft/fetch-event-source';
 
 interface StatusUpdate {
   step: string;
@@ -15,100 +14,74 @@ const useSSE = () => {
   const [currentStatus, setCurrentStatus] = useState<StatusUpdate | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-
+  const eventSourceRef = useRef<EventSource | null>(null);
   const { clientId, getToken } = useAuthStore();
   const reconnectAttemptRef = useRef<number>(0);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const maxReconnectAttempts = apiConfig.connection.maxReconnectAttempts;
-  const reconnectTimeoutRef = useRef<number | null>(null);
-  const controllerRef = useRef<AbortController | null>(null);
 
   const connectSSE = async () => {
-    console.log('Connecting to SSE...');
     setConnectionError(null);
 
-    // Abort existing connection if present
-    if (controllerRef.current) {
-      controllerRef.current.abort();
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
 
     const token = await getToken();
-    const apiBase = apiConfig.apiBaseUrl;
-    const url = apiBase + apiConfig.endpoints.status(clientId);
-
-    controllerRef.current = new AbortController();
 
     try {
-      await fetchEventSource(url, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        signal: controllerRef.current.signal,
+      const apiBase = apiConfig.apiBaseUrl;
+      const endpoint = apiConfig.endpoints.status(clientId);
+      const eventSourceUrl = `${apiBase}${endpoint}`;
 
-        // @ts-ignore
-        onopen(res) {
-          if (res.ok && res.status === 200) {
-            console.log('SSE connection opened successfully');
-            setIsConnected(true);
-            reconnectAttemptRef.current = 0;
-          } else {
-            throw new Error(`Failed to connect: ${res.status}`);
-          }
-        },
+      const eventSource = new EventSource(eventSourceUrl);
+      eventSourceRef.current = eventSource;
 
-        onmessage(event) {
-          try {
-            console.log('SSE raw event received:', event.data);
-            const data = JSON.parse(event.data);
+      eventSource.onopen = () => {
+        setIsConnected(true);
+        reconnectAttemptRef.current = 0;
+      };
 
-            setStatusUpdates((prev) => [...prev, data]);
-            setCurrentStatus(data);
-          } catch (error) {
-            console.error('Error parsing SSE message:', error);
-          }
-        },
+      eventSource.onmessage = (event) => {
+        try {
+          const data: StatusUpdate = JSON.parse(event.data);
+          setStatusUpdates(prev => [...prev, data]);
+          setCurrentStatus(data);
+        } catch (error) {
+          console.error('Error parsing SSE message:', error);
+        }
+      };
 
-        onerror(err) {
-          console.error('SSE connection error:', err);
-          setIsConnected(false);
-          setConnectionError('SSE connection error. Attempting to reconnect...');
+      eventSource.onerror = () => {
+        setIsConnected(false);
+        setConnectionError('SSE connection error. Attempting to reconnect...');
 
-          if (reconnectAttemptRef.current < maxReconnectAttempts) {
-            const baseDelay = Math.min(
-              apiConfig.connection.initialRetryDelay *
-                Math.pow(2, reconnectAttemptRef.current),
-              apiConfig.connection.maxRetryDelay
-            );
+        eventSource.close();
+        eventSourceRef.current = null;
 
-            const jitter = baseDelay * 0.3 * (Math.random() * 2 - 1);
-            const backoffTime = Math.max(1000, baseDelay + jitter);
+        if (reconnectAttemptRef.current < maxReconnectAttempts) {
+          const baseDelay = Math.min(
+            apiConfig.connection.initialRetryDelay * 2 ** reconnectAttemptRef.current,
+            apiConfig.connection.maxRetryDelay
+          );
+          const jitter = baseDelay * 0.3 * (Math.random() * 2 - 1);
+          const backoffTime = Math.max(1000, baseDelay + jitter);
 
-            console.log(
-              `Reconnecting in ${Math.round(backoffTime)}ms (attempt ${
-                reconnectAttemptRef.current + 1
-              }/${maxReconnectAttempts})`
-            );
+          if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
 
-            if (reconnectTimeoutRef.current) {
-              clearTimeout(reconnectTimeoutRef.current);
-            }
-
-            reconnectTimeoutRef.current = window.setTimeout(() => {
-              reconnectAttemptRef.current += 1;
-              connectSSE();
-            }, backoffTime);
-          } else {
-            setConnectionError(
-              'Failed to connect to status updates after multiple attempts. Please try again later.'
-            );
-          }
-
-          throw err;
-        },
-      });
+          reconnectTimeoutRef.current = setTimeout(() => {
+            reconnectAttemptRef.current += 1;
+            connectSSE();
+          }, backoffTime);
+        } else {
+          setConnectionError('Failed to connect after multiple attempts. Please try again later.');
+        }
+      };
     } catch (error) {
       console.error('Error creating SSE connection:', error);
-      setConnectionError('Failed to create SSE connection');
+      setConnectionError('Failed to create SSE connection.');
     }
   };
 
@@ -121,15 +94,15 @@ const useSSE = () => {
 
     return () => {
       unsubscribe();
-      if (controllerRef.current) {
-        controllerRef.current.abort();
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
       }
-
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, []);
+  }, [clientId]); // Dependency on clientId to reconnect when it changes
 
   const clearStatusUpdates = () => {
     setStatusUpdates([]);
@@ -143,7 +116,7 @@ const useSSE = () => {
     clearStatusUpdates,
     isConnected,
     connectionError,
-    reconnect: connectSSE,
+    reconnect: connectSSE
   };
 };
 

@@ -48,18 +48,9 @@ export const establishConnection = async(req: Request, res: Response): Promise<v
             'Access-Control-Allow-Origin': '*'
         });
 
-        // Increase the timeout for long connections
-        if (req.socket) {
-            req.socket.setTimeout(2 * 60 * 1000); // 2 minutes timeout
-        }
-
         // Send initial connection message
         res.write(`data: ${JSON.stringify({ type: 'connected', message: 'SSE connection established' })}\n\n`);
 
-        // Force an immediate flush to make sure event is sent
-        if (typeof (res as any).flush === 'function') {
-            (res as any).flush();
-        }
 
         // Store client connection
         clients.set(clientId, res);
@@ -70,25 +61,6 @@ export const establishConnection = async(req: Request, res: Response): Promise<v
             clients.delete(clientId);
             console.log(`SSE client disconnected: ${clientId}, Remaining clients: ${clients.size}`);
         });
-
-        // Keep connection alive with pings
-        const pingInterval = setInterval(() => {
-            try {
-                if (clients.has(clientId)) {
-                    res.write(`:ping\n\n`);
-                    // Force flush after ping
-                    if (typeof (res as any).flush === 'function') {
-                        (res as any).flush();
-                    }
-                } else {
-                    clearInterval(pingInterval);
-                }
-            } catch (error) {
-                console.error(`Error sending ping to client ${clientId}:`, error);
-                clients.delete(clientId);
-                clearInterval(pingInterval);
-            }
-        }, 15000); // Reduced from 30 seconds to 15 seconds for more frequent pings
     } catch (error) {
         console.error('SSE connection error:', error);
         res.status(500).json({ error: 'Internal server error' });
