@@ -24,6 +24,7 @@ const useRegister = () => {
     step,
     setStep,
     agreeToTerms,
+    setAgreeToTerms,
   } = useRegisterStore();
 
   const navigate = useNavigate();
@@ -140,7 +141,9 @@ const useRegister = () => {
     code,
     setCode,
     handleResendCode,
-    resendCountdown
+    resendCountdown,
+    agreeToTerms,
+    setAgreeToTerms
   };
 };
 

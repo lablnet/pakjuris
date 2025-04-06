@@ -17,8 +17,7 @@ export const loginValidations = [
  * Validation rules for Signup
  */
 export const signupValidations = [
-    body("first_name").isString().withMessage("First name is required"),
-    body("last_name").isString().withMessage("Last name is required"),
+    body("full_name").isString().withMessage("Full name is required"),
     body('email')
         .isEmail()
         .withMessage('Valid email is required'),
@@ -26,12 +25,6 @@ export const signupValidations = [
         .isString()
         .isLength({ min: 6 })
         .withMessage('Password must be at least 6 characters long'),
-    body('repeat').custom((value, { req }) => {
-        if (value !== req.body.password) {
-            throw new Error('Passwords do not match');
-        }
-        return true;
-    })
 ];
 
 /**

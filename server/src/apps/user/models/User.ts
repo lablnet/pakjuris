@@ -47,7 +47,7 @@ UserSchema.methods.comparePassword = async function (password: string): Promise<
 };
 
 UserSchema.methods.isProfileComplete = function (): boolean {
-  return this.tools.length > 0 && this.departments.length > 0;
+  return true
 }
 
 UserSchema.methods.toJSON = async function () {
