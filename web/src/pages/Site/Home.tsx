@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import MainLayout from '../layouts/MainLayout';
+import MainLayout from '../../layouts/MainLayout';
 
 // SVG icons for features
 const DocumentIcon = () => (
