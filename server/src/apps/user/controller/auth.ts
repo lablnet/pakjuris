@@ -56,10 +56,11 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
-
+    
+    const userData = await user.toJSON();
     res.cookie('at_fm_9274', accessToken, { httpOnly: true, secure: process.env.NODE_ENV !== 'development' });
     res.cookie('rt_fm_9247', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV !== 'development' });
-    res.status(200).json({ message: 'Login successful', user: user.toJSON() });
+    res.status(200).json({ message: 'Login successful', user: userData });
   } catch (error) {
     next(error);
   }
@@ -83,7 +84,9 @@ const verifyOTP = async (req: Request, res: Response, next: NextFunction): Promi
 
     res.cookie('at_fm_9274', accessToken, { httpOnly: true, secure: process.env.NODE_ENV !== 'development' });
     res.cookie('rt_fm_9247', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV !== 'development' });
-    res.status(200).json({ message: 'Email verified successfully', user: user.toJSON() });
+    
+    const userData = await user.toJSON();
+    res.status(200).json({ message: 'Email verified successfully', user: userData });
   } catch (error) {
     next(error)
   }
