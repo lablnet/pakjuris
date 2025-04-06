@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import MainLayout from '../../layouts/MainLayout';
-import ChatMessage from '../../components/ChatMessage';
-import ChatInput from '../../components/ChatInput';
-import StatusDisplay from '../../components/StatusDisplay';
+import ChatMessage from '../../components/chat/ChatMessage';
+import ChatInput from '../../components/chat/ChatInput';
+import StatusDisplay from '../../components/status/StatusDisplay';
 import useChat from '../../hooks/useChat';
 import usePDFViewer from '../../hooks/usePDFViewer';
 

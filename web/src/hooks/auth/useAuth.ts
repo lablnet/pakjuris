@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useUserStore } from '../../stores/userStore';
 import { parseErrors } from '../../utils/error';
-import { useToast } from '../../components/ToastComp';
+import { useToast } from '../../components/ui/ToastComp';
 import { MeType } from '../../types/api'
 
 const useAuth = () => {

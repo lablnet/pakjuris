@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 import MainLayout from '../../layouts/MainLayout';
-import Button from '../../components/Button';
+import { Button } from '../../components/ui';
 
 const ResetSuccess = () => {
   return (

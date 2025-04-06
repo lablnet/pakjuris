@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { parseErrors } from '../../utils/error';
 import { validateEmail } from '../../utils/validator';
-import { useToast } from '../../components/ToastComp';
+import { useToast } from '../../components/ui/ToastComp';
 import useOTP from './useOTP';
 
 const useReset = () => {

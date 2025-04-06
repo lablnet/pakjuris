@@ -4,8 +4,7 @@ import { motion } from 'framer-motion';
 import { Mail, Lock } from 'lucide-react';
 import MainLayout from '../../layouts/MainLayout';
 import useAuth from '../../hooks/auth/useAuth';
-import Button from '../../components/Button';
-import Input from '../../components/Input';
+import { Button, Input } from '../../components/ui';
 
 const Login = () => {
   const [email, setEmail] = useState('');

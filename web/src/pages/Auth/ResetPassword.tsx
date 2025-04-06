@@ -2,8 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, KeyRound } from 'lucide-react';
 import MainLayout from '../../layouts/MainLayout';
-import Button from '../../components/Button';
-import Input from '../../components/Input';
+import { Button, Input } from '../../components/ui';
 import useReset from '../../hooks/auth/useReset';
 
 const ResetPassword = () => {

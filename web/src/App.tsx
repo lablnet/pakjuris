@@ -3,7 +3,7 @@ import { pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { AuthProvider } from './contexts/AuthContext';
-import { ToastManager } from './components/ToastComp';
+import { ToastManager } from './components/ui/ToastComp';
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.mjs`;
@@ -20,7 +20,7 @@ import Profile from './pages/Dashboard/Profile';
 import NotFound from './pages/NotFound';
 
 // Import components
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/layout/ProtectedRoute';
 
 export default function App() {
   return (

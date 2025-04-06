@@ -4,8 +4,7 @@ import { motion } from 'framer-motion';
 import { Mail, User, Lock, KeyRound } from 'lucide-react';
 import MainLayout from '../../layouts/MainLayout';
 import useRegister from '../../hooks/auth/useRegister';
-import Button from '../../components/Button';
-import Input from '../../components/Input';
+import { Button, Input } from '../../components/ui';
 
 const Register = () => {
   const [error, setError] = useState<string | null>(null);
