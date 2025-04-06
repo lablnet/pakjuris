@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Mail, User, Lock, KeyRound } from 'lucide-react';
 import MainLayout from '../../layouts/MainLayout';
 import useRegister from '../../hooks/auth/useRegister';
+import Button from '../../components/Button';
+import Input from '../../components/Input';
 
 const Register = () => {
   const [error, setError] = useState<string | null>(null);
@@ -97,75 +100,57 @@ const Register = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="firstName" className="block text-gray-700 font-medium mb-1">
-                First Name
-              </label>
-              <input
-                type="text"
-                id="firstName"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="lastName" className="block text-gray-700 font-medium mb-1">
-                Last Name
-              </label>
-              <input
-                type="text"
-                id="lastName"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="email" className="block text-gray-700 font-medium mb-1">
-              Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            <Input
+              id="firstName"
+              type="text"
+              label="First Name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              leftIcon={<User size={18} />}
+              required
+            />
+            <Input
+              id="lastName"
+              type="text"
+              label="Last Name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              leftIcon={<User size={18} />}
               required
             />
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-gray-700 font-medium mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              required
-            />
-          </div>
+          <Input
+            id="email"
+            type="email"
+            label="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            leftIcon={<Mail size={18} />}
+            required
+          />
 
-          <div>
-            <label htmlFor="passwordConfirm" className="block text-gray-700 font-medium mb-1">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              id="passwordConfirm"
-              value={passwordConfirm}
-              onChange={(e) => setPasswordConfirm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              required
-            />
-          </div>
+          <Input
+            id="password"
+            type="password"
+            label="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            leftIcon={<Lock size={18} />}
+            isPasswordToggleable
+            required
+          />
+
+          <Input
+            id="passwordConfirm"
+            type="password"
+            label="Confirm Password"
+            value={passwordConfirm}
+            onChange={(e) => setPasswordConfirm(e.target.value)}
+            leftIcon={<Lock size={18} />}
+            isPasswordToggleable
+            required
+          />
 
           <div className="flex items-center">
             <input
@@ -180,13 +165,14 @@ const Register = () => {
             </label>
           </div>
 
-          <button
+          <Button
             type="submit"
+            isLoading={loading}
             disabled={loading}
-            className="w-full bg-blue-600 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
+            fullWidth
           >
             {loading ? 'Creating Account...' : 'Create Account'}
-          </button>
+          </Button>
         </form>
 
         <div className="mt-6 text-center">
@@ -216,39 +202,37 @@ const Register = () => {
         )}
 
         <form onSubmit={handleVerifyOTP} className="space-y-4">
-          <div>
-            <label htmlFor="otp" className="block text-gray-700 font-medium mb-1">
-              Enter Verification Code
-            </label>
-            <input
-              type="text"
-              id="otp"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              placeholder="6-digit code"
-              maxLength={6}
-              required
-            />
-          </div>
+          <Input
+            id="otp"
+            type="text"
+            label="Enter Verification Code"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            leftIcon={<KeyRound size={18} />}
+            placeholder="6-digit code"
+            maxLength={6}
+            required
+          />
 
-          <button
+          <Button
             type="submit"
+            isLoading={loading}
             disabled={loading}
-            className="w-full bg-blue-600 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
+            fullWidth
           >
             {loading ? 'Verifying...' : 'Verify Email'}
-          </button>
+          </Button>
 
           <div className="text-center mt-4">
-            <button
+            <Button
               type="button"
               onClick={handleResendCode}
               disabled={resendCountdown > 0 || loading}
-              className="text-blue-600 hover:text-blue-800 font-medium"
+              variant="ghost"
+              size="sm"
             >
               {resendCountdown > 0 ? `Resend code in ${resendCountdown}s` : 'Resend code'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
