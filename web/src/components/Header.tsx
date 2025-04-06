@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { logoutUser } from '../utils/firebase';
+import { useUserStore } from '../stores/userStore';
+import useAuth from '../hooks/auth/useAuth';
 
 const Header: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { user } = useUserStore();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -25,8 +26,7 @@ const Header: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await logoutUser();
-      navigate('/');
+      await logout();
       setMenuOpen(false);
     } catch (error) {
       console.error('Failed to log out', error);
@@ -51,14 +51,14 @@ const Header: React.FC = () => {
             About
           </Link>
           
-          {currentUser ? (
+          {user ? (
             <div className="relative" ref={menuRef}>
               <button 
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center space-x-1 bg-white/20 hover:bg-white/30 transition-colors rounded-lg px-3 py-1"
               >
                 <span className="hidden md:inline">
-                  {currentUser.displayName || currentUser.email?.split('@')[0]}
+                  {user.first_name || user.email?.split('@')[0]}
                 </span>
                 <span className="md:hidden">Account</span>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -70,9 +70,9 @@ const Header: React.FC = () => {
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden z-10">
                   <div className="p-2 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {currentUser.displayName}
+                      {user.first_name} {user.last_name}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">{currentUser.email}</p>
+                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
                   </div>
                   <div className="py-1">
                     <Link
