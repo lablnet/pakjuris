@@ -61,12 +61,12 @@ const useChat = (initialConversationId?: string) => {
     try {
       setIsLoading(true);
       const response = await api.chat.conversations.get(convId);
-      const conversation = response.data;
+      const conversation = response;
       
       // Transform messages to chat history format
       const messages = conversation.messages || [];
       const formattedHistory: ChatMessage[] = [];
-      
+      console.log("MESSAGES", messages);
       for (let i = 0; i < messages.length; i += 2) {
         const userMsg = messages[i];
         const assistantMsg = messages[i + 1];
