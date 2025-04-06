@@ -1,5 +1,5 @@
 // middleware/auth.js
-const admin = require('firebase-admin');
+const admin = require('../$node_modules/.pnpm/firebase-admin@11.11.1/$node_modules/firebase-admin/lib/index.js');
 
 /**
  * Authentication middleware that verifies Firebase ID tokens

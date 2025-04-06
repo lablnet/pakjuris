@@ -1,6 +1,6 @@
 // services/mongo.js
-const { MongoClient } = require('mongodb');
-const config = require('../config/env');
+const { MongoClient } = require('../$node_modules/.pnpm/mongodb@6.15.0_gcp-metadata@5.3.0/$node_modules/mongodb/mongodb.js');
+const config = require('../config/env.js');
 
 const mongoClient = new MongoClient(config.MONGODB_URI);
 let dbCollection = null;

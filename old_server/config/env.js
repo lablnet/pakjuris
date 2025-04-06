@@ -1,5 +1,5 @@
 // config/env.js
-require('dotenv').config();
+require('../$node_modules/.pnpm/dotenv@16.4.7/$node_modules/dotenv/lib/main.js').config();
 
 // Get config from environment variables
 const getConfig = (key, defaultValue = null) => {

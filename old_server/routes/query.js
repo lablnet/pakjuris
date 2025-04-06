@@ -1,12 +1,12 @@
 // routes/query.js
-const express = require('express');
-const geminiService = require('../services/gemini');
-const openaiService = require('../services/openai');
-const pineconeService = require('../services/pinecone');
-const { findDocumentDetails } = require('../services/mongo');
-const prompts = require('../utils/promptTemplates');
-const config = require('../config/env');
-const { sendStatusUpdate } = require('./status');
+const express = require('../$node_modules/@types/express/index.js');
+const geminiService = require('../services/gemini.js');
+const openaiService = require('../services/openai.js');
+const pineconeService = require('../services/pinecone.js');
+const { findDocumentDetails } = require('../services/mongo.js');
+const prompts = require('../utils/promptTemplates.js');
+const config = require('../config/env.js');
+const { sendStatusUpdate } = require('./status.js');
 
 // Create a router instance
 const router = express.Router();

@@ -1,7 +1,7 @@
-const express = require('express');
+const express = require('../$node_modules/@types/express/index.js');
 const router = express.Router();
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
+const functions = require('../$node_modules/.pnpm/firebase-functions@5.1.1_firebase-admin@11.11.1/$node_modules/firebase-functions/lib/v1/index.js');
+const admin = require('../$node_modules/.pnpm/firebase-admin@11.11.1/$node_modules/firebase-admin/lib/index.js');
 
 // Store active SSE connections
 const clients = new Map();
