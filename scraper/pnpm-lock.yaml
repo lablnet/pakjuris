@@ -51,8 +51,8 @@ importers:
         specifier: ^1.1.1
         version: 1.1.1
       pdfjs-dist:
-        specifier: 3.11.174
-        version: 3.11.174
+        specifier: 4.2.67
+        version: 4.2.67
       playwright:
         specifier: ^1.48.2
         version: 1.49.0
@@ -1012,16 +1012,16 @@ packages:
     resolution: {integrity: sha512-AVbw3UJ2e9bq64vSaS9Am0fje1Pa8pbGqTTsmXfaIiMpnr5DlDhfJOuLj9Sf95ZPVDAUerDfEk88MPmPe7UCQg==}
     engines: {node: '>=0.10.0'}
 
-  path2d-polyfill@2.0.1:
-    resolution: {integrity: sha512-ad/3bsalbbWhmBo0D6FZ4RNMwsLsPpL6gnvhuSaU5Vm7b06Kr5ubSltQQ0T7YKsiJQO+g22zJ4dJKNTXIyOXtA==}
-    engines: {node: '>=8'}
+  path2d@0.2.2:
+    resolution: {integrity: sha512-+vnG6S4dYcYxZd+CZxzXCNKdELYZSKfohrk98yajCo1PtRoDgCTrrwOvK1GT0UoAdVszagDVllQc0U1vaX4NUQ==}
+    engines: {node: '>=6'}
 
   pdf-parse@1.1.1:
     resolution: {integrity: sha512-v6ZJ/efsBpGrGGknjtq9J/oC8tZWq0KWL5vQrk2GlzLEQPUDB1ex+13Rmidl1neNN358Jn9EHZw5y07FFtaC7A==}
     engines: {node: '>=6.8.1'}
 
-  pdfjs-dist@3.11.174:
-    resolution: {integrity: sha512-TdTZPf1trZ8/UFu5Cx/GXB7GZM30LT+wWUNfsi6Bq8ePLnb+woNKtDymI2mxZYBpMbonNFqKmiz684DIfnd8dA==}
+  pdfjs-dist@4.2.67:
+    resolution: {integrity: sha512-rJmuBDFpD7cqC8WIkQUEClyB4UAH05K4AsyewToMTp2gSy3Rrx8c1ydAVqlJlGv3yZSOrhEERQU/4ScQQFlLHA==}
     engines: {node: '>=18'}
 
   playwright-core@1.49.0:
@@ -2465,7 +2465,7 @@ snapshots:
   path-is-absolute@1.0.1:
     optional: true
 
-  path2d-polyfill@2.0.1:
+  path2d@0.2.2:
     optional: true
 
   pdf-parse@1.1.1:
@@ -2475,10 +2475,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  pdfjs-dist@3.11.174:
+  pdfjs-dist@4.2.67:
     optionalDependencies:
       canvas: 2.11.2
-      path2d-polyfill: 2.0.1
+      path2d: 0.2.2
     transitivePeerDependencies:
       - encoding
       - supports-color
