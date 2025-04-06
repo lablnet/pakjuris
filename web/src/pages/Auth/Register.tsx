@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import MainLayout from '../layouts/MainLayout';
-import useRegister from '../hooks/auth/useRegister';
+import MainLayout from '../../layouts/MainLayout';
+import useRegister from '../../hooks/auth/useRegister';
 
 const Register = () => {
   const [error, setError] = useState<string | null>(null);

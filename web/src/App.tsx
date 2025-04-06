@@ -12,9 +12,9 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pd
 import Home from './pages/Home';
 import ChatPage from './pages/ChatPage';
 import About from './pages/About';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ResetPassword from './pages/ResetPassword';
+import Login from './pages/Auth/Login';
+import Register from './pages/Auth/Register';
+import ResetPassword from './pages/Auth/ResetPassword';
 import Profile from './pages/Profile';
 
 // Import components
