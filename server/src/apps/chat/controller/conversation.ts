@@ -11,9 +11,9 @@ export const getConversations = async (req: Request, res: Response, next: NextFu
   try {
     const userId = req.user ? (req.user as any)._id || (req.user as any).id : null;
     
-    const conversations = await Conversation.find({ userId })
+    const conversations = await Conversation.find({ userId, archived: { $ne: true } })
       .sort({ updated_at: -1 })
-      .select('_id userId name created_at updated_at');
+      .select('_id userId name created_at updated_at archived shareId');
     
     res.json(conversations);
   } catch (error) {
@@ -122,6 +122,81 @@ export const deleteConversation = async (req: Request, res: Response, next: Next
     }
     
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Archive or unarchive a conversation
+ */
+export const archiveConversation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { archived } = req.body;
+    const userId = req.user ? (req.user as any)._id || (req.user as any).id : null;
+    
+    if (typeof archived !== 'boolean') {
+      throw new ApiError('Archived status must be a boolean');
+    }
+    
+    const conversation = await Conversation.findOne({ _id: id, userId });
+    
+    if (!conversation) {
+      throw new ApiError('Conversation not found');
+    }
+    
+    conversation.archived = archived;
+    await conversation.save();
+    
+    res.json(conversation);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get all archived conversations for a user
+ */
+export const getArchivedConversations = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = req.user ? (req.user as any)._id || (req.user as any).id : null;
+    
+    const conversations = await Conversation.find({ userId, archived: true })
+      .sort({ updated_at: -1 })
+      .select('_id userId name created_at updated_at archived');
+    
+    res.json(conversations);
+  } catch (error) {
+    console.error('Error fetching archived conversations:', error);
+    next(error);
+  }
+};
+
+/**
+ * Generate a share link for a conversation
+ */
+export const shareConversation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user ? (req.user as any)._id || (req.user as any).id : null;
+    
+    const conversation = await Conversation.findOne({ _id: id, userId });
+    
+    if (!conversation) {
+      throw new ApiError('Conversation not found');
+    }
+    
+    // Generate a unique shareId if one doesn't exist
+    if (!conversation.shareId) {
+      conversation.shareId = require('crypto').randomBytes(16).toString('hex');
+      await conversation.save();
+    }
+    
+    res.json({
+      shareId: conversation.shareId,
+      shareUrl: `${req.protocol}://${req.get('host')}/shared/conversation/${conversation.shareId}`
+    });
   } catch (error) {
     next(error);
   }
