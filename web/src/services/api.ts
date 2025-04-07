@@ -146,6 +146,12 @@ const api = {
     },
     query: (data: any): Promise<any> =>
       axiosWrapper(axiosInstance.post('/chat/query/', data)),
+    feedback: {
+      create: (data: { messageId: string, status: 'liked' | 'disliked', reason?: string }): Promise<any> =>
+        axiosWrapper(axiosInstance.post('/chat/feedback/', data)),
+      get: (messageId: string): Promise<any> =>
+        axiosWrapper(axiosInstance.get(`/chat/feedback/${messageId}`)),
+    }
   }
 };
 export { api, axiosInstance };
