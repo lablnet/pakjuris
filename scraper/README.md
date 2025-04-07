@@ -42,6 +42,8 @@ The bill scraper downloads legal bills from pakistancode.gov.pk and stores them 
 
 ### Features
 
+- **Current Year Focus**: By default, only scrapes the current year to efficiently get new bills
+- **Full History Mode**: Option to scrape all historical years when needed
 - **Resume capability**: The scraper tracks progress and can resume from where it left off
 - **Deduplication**: Checks if bills already exist in MongoDB and S3 before downloading
 - **Metadata storage**: Saves bill metadata to MongoDB for easier retrieval
@@ -50,18 +52,26 @@ The bill scraper downloads legal bills from pakistancode.gov.pk and stores them 
 ### Running the Bill Scraper
 
 ```bash
-# Using npm script
+# Current Year Mode (Default) - Only scrapes bills from the current year
 pnpm run scrape:bills
 
-# Or directly
-node scrapers/bills.js
+# Full History Mode - Scrapes bills from all available years
+pnpm run scrape:bills:all
+
+# Directly with options
+node scrapers/bills.js  # Current year only
+node -e "require('./scrapers/bills').getBills(false)"  # All years
 ```
 
 ### Process Flow
 
-1. The scraper connects to MongoDB and retrieves the last saved state (year and bill index)
-2. It navigates to the Pakistan Code website and extracts available years
-3. For each year (starting from the resume point), it:
+1. The scraper connects to MongoDB and retrieves the last saved state
+2. It determines whether to scan only the current year (default) or all years
+3. It navigates to the Pakistan Code website and extracts available years
+   - In current year mode, it filters for only the current year's URL
+   - In full history mode, it processes all years in descending order
+
+4. For each selected year, it:
    - Extracts bill information (titles and URLs)
    - For each bill, it:
      - Checks if the bill already exists in MongoDB
@@ -70,7 +80,15 @@ node scrapers/bills.js
      - Saves bill metadata to MongoDB
      - Updates the scraper state for resume capability
 
-4. After processing, it closes connections and exits
+5. After processing, it closes connections and exits
+
+### Optimization for Routine Updates
+
+The current year mode is optimized for regular maintenance:
+- Only checks the current year, ignoring historical years that have already been processed
+- Resets the resume index when a new year is detected
+- Still maintains all duplicate checking to avoid re-downloading existing bills
+- Ideal for scheduled runs (monthly, weekly, etc.) to keep the database up-to-date
 
 ## Document Vectorization
 
@@ -95,3 +113,4 @@ This processes PDFs by:
 - **MongoDB Connection Issues**: Verify your MongoDB URI and credentials
 - **S3 Upload Failures**: Check AWS credentials and bucket permissions
 - **Website Structure Changes**: If the pakistancode.gov.pk website changes structure, the scraper selectors may need to be updated
+- **No Current Year Found**: If the website hasn't added the current year yet, you'll see a warning message

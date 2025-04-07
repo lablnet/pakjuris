@@ -143,7 +143,12 @@ async function getScraperState() {
     }
 }
 
-const getBills = async() => {
+// Get the current year
+function getCurrentYear() {
+    return new Date().getFullYear().toString();
+}
+
+const getBills = async(onlyCurrentYear = true) => {
     const { browser, page } = await getBrowserAndPage();
     
     try {
@@ -158,8 +163,12 @@ const getBills = async() => {
         if (scraperState) {
             resumeYear = scraperState.lastProcessedYear;
             resumeBillIndex = scraperState.lastProcessedBillIndex;
-            console.log(`Resuming scraper from Year: ${resumeYear}, Bill Index: ${resumeBillIndex}`);
+            console.log(`Retrieved previous scraper state: Year ${resumeYear}, Bill Index ${resumeBillIndex}`);
         }
+        
+        // Get current year for filtering
+        const currentYear = getCurrentYear();
+        console.log(`Current year is: ${currentYear}`);
         
         // Start scraping process
         await page.goto(BASE_URL + MAIN_PAGE, { waitUntil: 'networkidle', timeout: 60000 });
@@ -196,15 +205,34 @@ const getBills = async() => {
         const uniqueYearUrls = [...new Set(yearUrls)];
         console.log(`Found ${uniqueYearUrls.length} unique year URLs.`);
         
-        // Sort years in descending order (newest first) for better experience
-        uniqueYearUrls.sort((a, b) => {
-            const yearA = new URL(a).searchParams.get('year') || '0';
-            const yearB = new URL(b).searchParams.get('year') || '0';
-            return parseInt(yearB) - parseInt(yearA);
-        });
+        // Filter for only the current year if specified
+        let yearsToProcess = uniqueYearUrls;
+        if (onlyCurrentYear) {
+            yearsToProcess = uniqueYearUrls.filter(url => {
+                try {
+                    const year = new URL(url).searchParams.get('year');
+                    return year === currentYear;
+                } catch {
+                    return false;
+                }
+            });
+            console.log(`Filtered to ${yearsToProcess.length} URLs for current year ${currentYear}.`);
+            
+            if (yearsToProcess.length === 0) {
+                console.log(`⚠️ No URL found for current year ${currentYear}. The website might not have updated yet.`);
+                return;
+            }
+        } else {
+            // If processing all years, sort them in descending order (newest first)
+            yearsToProcess.sort((a, b) => {
+                const yearA = new URL(a).searchParams.get('year') || '0';
+                const yearB = new URL(b).searchParams.get('year') || '0';
+                return parseInt(yearB) - parseInt(yearA);
+            });
+        }
 
-        // Process each year
-        for (const yearUrl of uniqueYearUrls) {
+        // Process each selected year
+        for (const yearUrl of yearsToProcess) {
             let year = 'UnknownYear';
             try {
                 year = new URL(yearUrl).searchParams.get('year') || 'UnknownYear';
@@ -213,10 +241,11 @@ const getBills = async() => {
                 continue; // Skip if URL is invalid
             }
             
-            // Skip years until we reach the resume point
-            if (resumeYear && year < resumeYear) {
-                console.log(`Skipping year ${year} (before resume point ${resumeYear})`);
-                continue;
+            // For current year only mode, reset the resume state if it's a new year
+            if (onlyCurrentYear && resumeYear !== year) {
+                console.log(`New year detected (${year} vs previous ${resumeYear}). Resetting resume index.`);
+                resumeBillIndex = -1; // Reset to process all bills in the new year
+                // We don't reset resumeYear because we still want to know where we left off
             }
 
             console.log(`\n--- Processing Year: ${year} ---`);
@@ -486,7 +515,8 @@ const getBills = async() => {
 };
 
 // Execute the scraper
-getBills().catch(error => {
+// Pass true to only process the current year (default), or false to process all years
+getBills(true).catch(error => {
     console.error('Fatal error:', error);
     process.exit(1);
 });

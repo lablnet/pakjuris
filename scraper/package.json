@@ -6,6 +6,7 @@
     "scripts": {
         "start": "node index.js",
         "scrape:bills": "node scrapers/bills.js",
+        "scrape:bills:all": "node -e \"require('./scrapers/bills').getBills(false)\"",
         "vectorize": "node vectorize_folder.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
