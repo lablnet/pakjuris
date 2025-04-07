@@ -3,8 +3,16 @@ const path = require('path');
 const fs = require('fs');
 const axios = require('axios'); // For direct downloads
 const { uploadIfNotExists, fileExists } = require('../helper/s3');
+const { MongoClient } = require('mongodb');
 // const { memberExists, addMember, uploadImage, getPartyByAbbreviation } = require('../../helper/supabase');
 
+// MongoDB configuration
+const MONGODB_URI = process.env.MONGODB_URI;
+const DB_NAME = process.env.MONGODB_DB;
+const COLLECTION_NAME = process.env.MONGODB_COLLECTION;
+const SCRAPER_STATE_COLLECTION = 'scraper_state'; // Collection to store scraper state
+
+// Base URLs and storage configuration
 const BASE_URL = 'https://pakistancode.gov.pk/english/';
 const MAIN_PAGE = 'LGu0xBD.php';
 // Define download directory relative to the script's location
@@ -14,10 +22,146 @@ const DOWNLOAD_DIR = path.resolve(__dirname, '..', '..', 'downloads', 'bills');
 fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 console.log(`Downloads will be saved to: ${DOWNLOAD_DIR}`);
 
+// MongoDB client
+let mongoClient;
+let billsCollection;
+let scraperStateCollection;
+
+// Initialize MongoDB connection
+async function initMongoDB() {
+    if (!MONGODB_URI) {
+        throw new Error('MONGODB_URI is not defined in environment variables');
+    }
+    
+    try {
+        mongoClient = new MongoClient(MONGODB_URI);
+        await mongoClient.connect();
+        console.log('Connected to MongoDB for bills scraper');
+        
+        const db = mongoClient.db(DB_NAME);
+        billsCollection = db.collection(COLLECTION_NAME);
+        scraperStateCollection = db.collection(SCRAPER_STATE_COLLECTION);
+        
+        return { billsCollection, scraperStateCollection };
+    } catch (error) {
+        console.error('Failed to connect to MongoDB:', error);
+        throw error;
+    }
+}
+
+// Check if bill already exists in MongoDB
+async function billExistsInMongoDB(year, title) {
+    if (!billsCollection) {
+        throw new Error('MongoDB not initialized');
+    }
+    
+    const normalizedTitle = title.toLowerCase().replace(/[^\w\s]/g, '').trim();
+    console.log(`Checking if bill exists in MongoDB: ${year} - ${normalizedTitle}`);
+    
+    const existingBill = await billsCollection.findOne({
+        year: year,
+        title: { $regex: new RegExp(`^${normalizedTitle.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') }
+    });
+    
+    return !!existingBill;
+}
+
+// Save bill metadata to MongoDB
+async function saveBillToMongoDB(billData) {
+    if (!billsCollection) {
+        throw new Error('MongoDB not initialized');
+    }
+    
+    try {
+        const normalizedTitle = billData.title.toLowerCase().replace(/[^\w\s]/g, '').trim();
+        
+        // Check if it already exists first
+        const existingBill = await billsCollection.findOne({
+            year: billData.year,
+            title: { $regex: new RegExp(`^${normalizedTitle.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') }
+        });
+        
+        if (existingBill) {
+            console.log(`Bill already exists in MongoDB: ${billData.year} - ${billData.title}`);
+            return existingBill._id;
+        }
+        
+        // Set created/updated timestamps
+        billData.createdAt = new Date();
+        billData.updatedAt = new Date();
+        
+        const result = await billsCollection.insertOne(billData);
+        console.log(`Bill saved to MongoDB with ID: ${result.insertedId}`);
+        return result.insertedId;
+    } catch (error) {
+        console.error(`Error saving bill to MongoDB: ${error.message}`);
+        throw error;
+    }
+}
+
+// Save scraper state to MongoDB for resumability
+async function saveScraperState(year, lastProcessedBillIndex) {
+    if (!scraperStateCollection) {
+        throw new Error('MongoDB not initialized');
+    }
+    
+    try {
+        await scraperStateCollection.updateOne(
+            { scraper: 'bills' },
+            { 
+                $set: { 
+                    lastProcessedYear: year,
+                    lastProcessedBillIndex: lastProcessedBillIndex,
+                    updatedAt: new Date()
+                }
+            },
+            { upsert: true }
+        );
+        console.log(`Saved scraper state: Year ${year}, Bill Index ${lastProcessedBillIndex}`);
+    } catch (error) {
+        console.error(`Error saving scraper state: ${error.message}`);
+    }
+}
+
+// Get scraper state from MongoDB
+async function getScraperState() {
+    if (!scraperStateCollection) {
+        throw new Error('MongoDB not initialized');
+    }
+    
+    try {
+        const state = await scraperStateCollection.findOne({ scraper: 'bills' });
+        if (state) {
+            console.log(`Retrieved scraper state: Year ${state.lastProcessedYear}, Bill Index ${state.lastProcessedBillIndex}`);
+        } else {
+            console.log('No saved scraper state found, starting from beginning');
+        }
+        return state;
+    } catch (error) {
+        console.error(`Error retrieving scraper state: ${error.message}`);
+        return null;
+    }
+}
+
 const getBills = async() => {
     const { browser, page } = await getBrowserAndPage();
-
+    
     try {
+        // Initialize MongoDB connection
+        await initMongoDB();
+        
+        // Get the last saved scraper state
+        const scraperState = await getScraperState();
+        let resumeYear = null;
+        let resumeBillIndex = -1;
+        
+        if (scraperState) {
+            resumeYear = scraperState.lastProcessedYear;
+            resumeBillIndex = scraperState.lastProcessedBillIndex;
+            console.log(`Resuming scraper from Year: ${resumeYear}, Bill Index: ${resumeBillIndex}`);
+        }
+        
+        // Start scraping process
         await page.goto(BASE_URL + MAIN_PAGE, { waitUntil: 'networkidle', timeout: 60000 });
         console.log('Navigated to main page:', BASE_URL + MAIN_PAGE);
         await _wait(5000); // Wait for initial page load and potential JS execution
@@ -51,19 +195,28 @@ const getBills = async() => {
         // Filter unique URLs
         const uniqueYearUrls = [...new Set(yearUrls)];
         console.log(`Found ${uniqueYearUrls.length} unique year URLs.`);
-        // console.log('Year URLs:', uniqueYearUrls); // Optional: log URLs
+        
+        // Sort years in descending order (newest first) for better experience
+        uniqueYearUrls.sort((a, b) => {
+            const yearA = new URL(a).searchParams.get('year') || '0';
+            const yearB = new URL(b).searchParams.get('year') || '0';
+            return parseInt(yearB) - parseInt(yearA);
+        });
 
-        // Limit years for testing if needed
-        // const testYearUrls = uniqueYearUrls.filter(url => url.includes('year=2024')); // Example: Test with 2024 only
-        const testYearUrls = uniqueYearUrls; // Process all years
-
-        for (const yearUrl of testYearUrls) {
+        // Process each year
+        for (const yearUrl of uniqueYearUrls) {
             let year = 'UnknownYear';
             try {
                 year = new URL(yearUrl).searchParams.get('year') || 'UnknownYear';
             } catch (urlError) {
                 console.warn(`Could not parse year from URL: ${yearUrl}`, urlError.message);
                 continue; // Skip if URL is invalid
+            }
+            
+            // Skip years until we reach the resume point
+            if (resumeYear && year < resumeYear) {
+                console.log(`Skipping year ${year} (before resume point ${resumeYear})`);
+                continue;
             }
 
             console.log(`\n--- Processing Year: ${year} ---`);
@@ -83,7 +236,6 @@ const getBills = async() => {
                     }
                 }
 
-
                 // --- Get Bill Links for the Current Year ---
                 const billLinksSelector = '#primary-legislation .accordion .accordion-section .accordion-section-title a';
                 try {
@@ -94,7 +246,6 @@ const getBills = async() => {
                     continue; // Skip to the next year if no bill links found
                 }
 
-
                 const billInfos = await page.$$eval(billLinksSelector, (links) =>
                     links.map((a) => ({
                         href: a.href,
@@ -104,18 +255,55 @@ const getBills = async() => {
                 );
                 console.log(`Found ${billInfos.length} bills for year ${year}.`);
 
-                for (const billInfo of billInfos) {
+                // Process each bill for the current year
+                for (let billIndex = 0; billIndex < billInfos.length; billIndex++) {
+                    const billInfo = billInfos[billIndex];
+                    
+                    // Skip bills until we reach the resume point
+                    if (resumeYear === year && billIndex <= resumeBillIndex) {
+                        console.log(`  Skipping bill ${billIndex} (already processed in previous run)`);
+                        continue;
+                    }
+                    
                     // Sanitize title for filename
                     const safeTitle = billInfo.title.replace(/[^a-z0-9\s-]/gi, '').replace(/[\s]+/g, '_');
                     const pdfFilename = `${year}_${safeTitle}.pdf`;
                     const pdfPath = path.join(DOWNLOAD_DIR, pdfFilename);
                     const s3Key = `bills/${year}/${pdfFilename}`;
+                    
+                    // Check if bill exists in MongoDB
+                    try {
+                        const billExists = await billExistsInMongoDB(year, billInfo.title);
+                        if (billExists) {
+                            console.log(`  Skipping "${billInfo.title}" (already exists in MongoDB)`);
+                            // Save state after skipping
+                            await saveScraperState(year, billIndex);
+                            continue;
+                        }
+                    } catch (dbError) {
+                        console.error(`  Error checking MongoDB: ${dbError.message}`);
+                        // Continue with S3 check despite DB error
+                    }
 
                     // Check if file already exists in S3
                     try {
                         const existsInS3 = await fileExists(s3Key);
                         if (existsInS3) {
                             console.log(`  Skipping "${billInfo.title}" (already exists in S3: ${s3Key})`);
+                            
+                            // If it exists in S3 but not in MongoDB, add it to MongoDB
+                            console.log(`  Adding existing S3 file metadata to MongoDB: ${billInfo.title}`);
+                            await saveBillToMongoDB({
+                                title: billInfo.title,
+                                year: year,
+                                pdfFilename: pdfFilename,
+                                sourceUrl: billInfo.href,
+                                s3Key: s3Key,
+                                s3Url: `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET}/${s3Key}`
+                            });
+                            
+                            // Save state after processing
+                            await saveScraperState(year, billIndex);
                             continue;
                         }
                     } catch (s3CheckError) {
@@ -143,9 +331,22 @@ const getBills = async() => {
 
                             if (uploadResult) {
                                 console.log(`  Successfully uploaded existing local file to S3: ${s3Key}`);
+                                
+                                // Save to MongoDB after successful S3 upload
+                                await saveBillToMongoDB({
+                                    title: billInfo.title,
+                                    year: year,
+                                    pdfFilename: pdfFilename,
+                                    sourceUrl: billInfo.href,
+                                    s3Key: s3Key,
+                                    s3Url: `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET}/${s3Key}`
+                                });
                             } else {
                                 console.log(`  File already exists in S3, skipped upload: ${s3Key}`);
                             }
+                            
+                            // Save state after processing
+                            await saveScraperState(year, billIndex);
                             continue; // Skip the download part
                         } catch (s3UploadError) {
                             console.error(`  Error uploading existing local file to S3: ${s3UploadError.message}`);
@@ -198,96 +399,97 @@ const getBills = async() => {
                                         }
                                     });
 
-                                    // Check response status
-                                    if (response.status !== 200) {
-                                        throw new Error(`Download failed with status: ${response.status}`);
-                                    }
-
-
+                                    // Write the PDF file to disk
                                     const writer = fs.createWriteStream(pdfPath);
-                                    response.data.pipe(writer);
+                                    let completeFlag = false;
 
-                                    await new Promise((resolve, reject) => {
-                                        writer.on('finish', resolve);
-                                        writer.on('error', (err) => {
-                                            console.error(`    Error writing file ${pdfFilename}:`, err);
-                                            // Clean up incomplete file on error
-                                            fs.unlink(pdfPath, () => reject(err));
-                                        });
-                                        response.data.on('error', (err) => {
-                                            console.error(`    Error during download stream for ${pdfFilename}:`, err);
-                                            // Clean up incomplete file on error
-                                            fs.unlink(pdfPath, () => reject(err));
-                                        });
-                                    });
-                                    console.log(`    Successfully downloaded ${pdfFilename}`);
+                                    writer.on('finish', async () => {
+                                        if (completeFlag) return; // Avoid double-processing
+                                        completeFlag = true;
+                                        console.log(`    ✅ PDF saved successfully: ${pdfPath}`);
 
-                                    // Upload to S3 after successful download
-                                    try {
-                                        const s3Key = `bills/${year}/${pdfFilename}`;
-                                        const fileContent = fs.readFileSync(pdfPath);
-
-                                        const uploadResult = await uploadIfNotExists(
-                                            s3Key,
-                                            fileContent,
-                                            'application/pdf', {
-                                                Metadata: {
-                                                    'bill-title': billInfo.title,
-                                                    'bill-year': year,
-                                                    'uploaded-date': new Date().toISOString()
+                                        try {
+                                            // Upload the file to S3
+                                            const fileContent = fs.readFileSync(pdfPath);
+                                            console.log(`    Uploading to S3: ${s3Key}`);
+                                            await uploadIfNotExists(
+                                                s3Key,
+                                                fileContent,
+                                                'application/pdf', {
+                                                    Metadata: {
+                                                        'bill-title': billInfo.title,
+                                                        'bill-year': year,
+                                                        'uploaded-date': new Date().toISOString()
+                                                    }
                                                 }
-                                            }
-                                        );
-
-                                        if (uploadResult) {
-                                            console.log(`    Successfully uploaded to S3: ${s3Key}`);
-                                        } else {
-                                            console.log(`    File already exists in S3, skipped upload: ${s3Key}`);
+                                            );
+                                            console.log(`    ✅ Successfully uploaded to S3: ${s3Key}`);
+                                            
+                                            // Save to MongoDB after successful S3 upload
+                                            await saveBillToMongoDB({
+                                                title: billInfo.title,
+                                                year: year,
+                                                pdfFilename: pdfFilename,
+                                                sourceUrl: billInfo.href,
+                                                s3Key: s3Key,
+                                                s3Url: `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET}/${s3Key}`
+                                            });
+                                            
+                                            // Update scraper state after successful processing
+                                            await saveScraperState(year, billIndex);
+                                        } catch (err) {
+                                            console.error(`    ❌ Error in upload/save process: ${err.message}`);
                                         }
-                                    } catch (s3Error) {
-                                        console.error(`    Error uploading to S3: ${s3Error.message}`);
-                                    }
+                                    });
+
+                                    writer.on('error', (err) => {
+                                        if (completeFlag) return; // Avoid double-error handling
+                                        completeFlag = true;
+                                        console.error(`    ❌ Error writing PDF to disk: ${err.message}`);
+                                    });
+
+                                    response.data.pipe(writer);
+                                    
+                                    // Wait for a reasonable amount of time for the write to complete
+                                    await new Promise((resolve) => setTimeout(resolve, 5000));
                                 } catch (downloadError) {
-                                    console.error(`    Error downloading ${pdfUrl} using axios:`, downloadError.message);
-                                    // Attempt to remove potentially corrupt partial file
-                                    if (fs.existsSync(pdfPath)) {
-                                        fs.unlink(pdfPath, (unlinkErr) => {
-                                            if (unlinkErr) console.error(`    Error removing partial file ${pdfPath}:`, unlinkErr);
-                                        });
-                                    }
+                                    console.error(`    ❌ Error downloading PDF: ${downloadError.message}`);
                                 }
-
                             } else {
-                                console.log(`    Could not extract PDF URL from link found with selector: ${pdfLinkSelector}`);
+                                console.error(`    ❌ No PDF URL found in link element.`);
                             }
-
-                        } catch (tabOrLinkError) {
-                            console.error(`    Error finding/clicking download tab or PDF link for bill "${billInfo.title}" (${billInfo.href}):`, tabOrLinkError.message);
+                        } catch (tabError) {
+                            console.error(`    ❌ Error with download tab: ${tabError.message}`);
                         }
-
-                    } catch (billNavError) {
-                        console.error(`  Error navigating to or processing bill page ${billInfo.href}:`, billNavError.message);
+                    } catch (pageError) {
+                        console.error(`    ❌ Error navigating to bill page: ${pageError.message}`);
                     }
-                    await _wait(1500); // Small delay before next bill
+                    
+                    // Add a delay between bill processing to avoid overloading the server
+                    console.log(`    Waiting 3 seconds before processing next bill...`);
+                    await _wait(3000);
                 }
-
-            } catch (yearNavError) {
-                console.error(`Error navigating to or processing year page ${yearUrl}:`, yearNavError.message);
+            } catch (yearError) {
+                console.error(`❌ Error processing year ${year}: ${yearError.message}`);
             }
-            await _wait(2500); // Small delay before next year
         }
 
-        console.log('\n--- Scraping finished ---');
-
+        console.log('✅ Scraping process completed successfully.');
     } catch (error) {
-        console.error('An unexpected error occurred during scraping:', error);
+        console.error(`❌ Error in bills scraper: ${error.message}`);
     } finally {
-        if (browser) {
-            await browser.close();
-            console.log('Browser closed.');
-        }
+        // Close browser
+        if (browser) await browser.close();
+        // Close MongoDB connection
+        if (mongoClient) await mongoClient.close();
     }
-}
+};
+
+// Execute the scraper
+getBills().catch(error => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+});
 
 module.exports = {
     getBills
