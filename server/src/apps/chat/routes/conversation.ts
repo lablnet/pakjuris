@@ -6,6 +6,9 @@ const router = express.Router();
 // Get all conversations for the authenticated user
 router.get('/', conversationController.getConversations);
 
+// Get all archived conversations for the authenticated user
+router.get('/archived', conversationController.getArchivedConversations);
+
 // Get a specific conversation by ID
 router.get('/:id', conversationController.getConversation);
 
@@ -17,5 +20,11 @@ router.put('/:id', conversationController.updateConversation);
 
 // Delete a conversation
 router.delete('/:id', conversationController.deleteConversation);
+
+// Archive/unarchive a conversation
+router.patch('/:id/archive', conversationController.archiveConversation);
+
+// Share a conversation
+router.post('/:id/share', conversationController.shareConversation);
 
 export default router;
