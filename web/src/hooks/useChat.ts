@@ -91,18 +91,21 @@ const useChat = (initialConversationId?: string) => {
       setChatHistory(formattedHistory);
 
       // Set the PDF viewer state to the last legal query with a PDF
-      if (formattedHistory.length > 0) {
-        const lastLegalQuery = [...formattedHistory].reverse().find(
-          msg => msg.answer.intent === 'LEGAL_QUERY' && msg.answer.pdfUrl && msg.answer.originalText
-        );
+      // Do this AFTER setting chat history to ensure we have the most recent state
+      setTimeout(() => {
+        if (formattedHistory.length > 0) {
+          const lastLegalQuery = [...formattedHistory].reverse().find(
+            msg => msg.answer.intent === 'LEGAL_QUERY' && msg.answer.pdfUrl && msg.answer.originalText
+          );
 
-        if (lastLegalQuery) {
-          console.log("Setting PDF viewer state from conversation history:", lastLegalQuery);
-          setCurrentPdfUrl(lastLegalQuery.answer.pdfUrl || null);
-          setCurrentHighlightText(lastLegalQuery.answer.originalText || null);
-          setCurrentHighlightPage(lastLegalQuery.answer.pageNumber || 1);
+          if (lastLegalQuery) {
+            console.log("Setting PDF viewer state from conversation history:", lastLegalQuery);
+            setCurrentPdfUrl(lastLegalQuery.answer.pdfUrl || null);
+            setCurrentHighlightText(lastLegalQuery.answer.originalText || null);
+            setCurrentHighlightPage(lastLegalQuery.answer.pageNumber || 1);
+          }
         }
-      }
+      }, 0);
     } catch (error) {
       console.error('Error loading conversation:', error);
     } finally {

@@ -67,13 +67,33 @@ export default function ChatPage() {
         
         const message = chatHistory[actualIndex];
         if (message.answer.pdfUrl) {
+          console.log("Auto-selecting message on history change:", message);
           setCurrentPdfUrl(message.answer.pdfUrl);
           setCurrentHighlightText(message.answer.originalText || null);
           setCurrentHighlightPage(message.answer.pageNumber || 1);
         }
       }
     }
-  }, [chatHistory.length]);
+  }, [chatHistory, setCurrentPdfUrl, setCurrentHighlightText, setCurrentHighlightPage]);
+
+  // Initial selection effect when component mounts
+  useEffect(() => {
+    if (chatHistory.length > 0 && activeMessageIndex === null) {
+      // Find the first legal query with a PDF
+      const legalQueryIndex = chatHistory.findIndex(
+        msg => msg.answer.intent === 'LEGAL_QUERY' && msg.answer.pdfUrl
+      );
+      
+      if (legalQueryIndex !== -1) {
+        const message = chatHistory[legalQueryIndex];
+        console.log("Initial selection on mount:", message);
+        setActiveMessageIndex(legalQueryIndex);
+        setCurrentPdfUrl(message.answer.pdfUrl || null);
+        setCurrentHighlightText(message.answer.originalText || null);
+        setCurrentHighlightPage(message.answer.pageNumber || 1);
+      }
+    }
+  }, []);
 
   // Function to handle message click and set it as active
   const handleMessageSelect = (index: number) => {

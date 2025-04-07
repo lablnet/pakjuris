@@ -53,7 +53,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   // Use message's originalText as highlight text when this message's PDF is shown
   const highlightText = currentPdfUrl === message.answer.pdfUrl 
     ? message.answer.originalText || currentHighlightText
-    : currentHighlightText;
+    : (currentPdfUrl === null && message.answer.originalText) 
+      ? message.answer.originalText // Use message's own text if no PDF is currently selected
+      : currentHighlightText;
   
   const togglePdfPreview = () => {
     setShowPdfPreview(prev => !prev);
