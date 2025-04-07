@@ -8,13 +8,15 @@ interface MainLayoutProps {
   conversationId?: string;
   onSelectConversation?: (id: string) => void;
   showConversations?: boolean;
+  startNewChat?: () => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ 
   children, 
   conversationId, 
   onSelectConversation = () => {}, 
-  showConversations = true 
+  showConversations = true,
+  startNewChat = () => {}
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
@@ -55,6 +57,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             onSelect={onSelectConversation}
             isOpen={sidebarOpen}
             onToggle={toggleSidebar}
+            startNewChat={startNewChat}
           />
         )}
         
