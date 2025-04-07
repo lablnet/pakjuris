@@ -140,7 +140,7 @@ const useChat = (initialConversationId?: string) => {
         clientId: clientId, // Send clientId to server
         conversationId: conversationId // Send conversationId if it exists
       });
-      const responseData = res.data;
+      const responseData = res;
 
       // Update the conversation ID if this is a new conversation
       if (responseData.conversationId && !conversationId) {

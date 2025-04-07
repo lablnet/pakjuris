@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IConversation extends Document {
+  _id: string;
   userId?: string;
   name: string;
   created_at: Date;

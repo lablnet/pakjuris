@@ -277,7 +277,7 @@ export const processQuery = async (req: Request, res: Response, next: NextFuncti
             }
 
             responseData = {
-                conversationId: conversation!._id!.toString(),
+                conversationId: conversation._id,
                 intent: intent,
                 title: bestMetadata.title || 'N/A',
                 year: bestMetadata.year || 'N/A',
