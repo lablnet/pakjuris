@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { formattedDate } from '../../utils/helpers';
 
@@ -15,18 +14,19 @@ interface ConversationListProps {
   onSelect: (id: string) => void;
   isOpen: boolean;
   onToggle: () => void;
+  startNewChat: () => void;
 }
 
 const ConversationList: React.FC<ConversationListProps> = ({ 
   currentConversationId,
   onSelect,
   isOpen,
-  onToggle
+  onToggle,
+  startNewChat
 }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
   
   useEffect(() => {
     fetchConversations();
@@ -48,7 +48,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
   };
   
   const handleNewChat = () => {
-    navigate('/chat');
+    startNewChat();
     // Close the sidebar on mobile after navigation
     if (window.innerWidth < 768) {
       onToggle();
