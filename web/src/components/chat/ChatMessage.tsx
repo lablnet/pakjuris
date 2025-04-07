@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
@@ -38,6 +38,22 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   onDocumentLoadError
 }) => {
   const [showPdfPreview, setShowPdfPreview] = useState(false);
+  
+  // Debug logging for highlight text
+  useEffect(() => {
+    console.log('ChatMessage Props:', { 
+      messageText: message.answer.originalText, 
+      currentHighlightText, 
+      currentPdfUrl: currentPdfUrl, 
+      messagePdfUrl: message.answer.pdfUrl,
+      currentHighlightPage
+    });
+  }, [message, currentHighlightText, currentPdfUrl, currentHighlightPage]);
+  
+  // Use message's originalText as highlight text when this message's PDF is shown
+  const highlightText = currentPdfUrl === message.answer.pdfUrl 
+    ? message.answer.originalText || currentHighlightText
+    : currentHighlightText;
   
   const togglePdfPreview = () => {
     setShowPdfPreview(prev => !prev);
@@ -160,15 +176,16 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                     ) : null}
                   </div>
                   {/* Highlighted Text */}
-                  {currentHighlightText && (
+                  {highlightText && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
                       className="flex-shrink-0 bg-yellow-50 p-3 rounded-lg shadow-inner border border-yellow-100 overflow-auto max-h-32"
+                      onClick={() => console.log('Highlight section clicked, text:', highlightText)}
                     >
                       <h4 className="font-semibold text-xs text-yellow-800 sticky top-0 bg-yellow-50">Relevant Excerpt:</h4>
-                      <p className="text-xs text-yellow-900 mt-1">{currentHighlightText}</p>
+                      <p className="text-xs text-yellow-900 mt-1">{highlightText}</p>
                     </motion.div>
                   )}
                 </motion.div>
@@ -210,10 +227,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                       </div>
                       
                       {/* Mobile Highlighted Text */}
-                      {currentHighlightText && (
-                        <div className="mt-3 bg-yellow-50 p-3 rounded-lg shadow-inner border border-yellow-100 overflow-auto">
+                      {highlightText && (
+                        <div 
+                          className="mt-3 bg-yellow-50 p-3 rounded-lg shadow-inner border border-yellow-100 overflow-auto"
+                          onClick={() => console.log('Mobile highlight section clicked, text:', highlightText)}
+                        >
                           <h4 className="font-semibold text-xs text-yellow-800 sticky top-0 bg-yellow-50">Relevant Excerpt:</h4>
-                          <p className="text-xs text-yellow-900 mt-1">{currentHighlightText}</p>
+                          <p className="text-xs text-yellow-900 mt-1">{highlightText}</p>
                         </div>
                       )}
                     </div>

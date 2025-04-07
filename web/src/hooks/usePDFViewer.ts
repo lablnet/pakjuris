@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const usePDFViewer = () => {
   const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
@@ -6,6 +6,17 @@ const usePDFViewer = () => {
   const [currentHighlightPage, setCurrentHighlightPage] = useState<number>(1);
   const [currentNumPages, setCurrentNumPages] = useState<number | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
+
+  // Debug: Log when highlights are set
+  useEffect(() => {
+    console.log("PDFViewer - Highlight text changed:", currentHighlightText);
+  }, [currentHighlightText]);
+
+  // Intercept the setter for highlight text to add debugging
+  const setHighlightTextWithLogging = (text: string | null) => {
+    console.log("Setting highlight text to:", text);
+    setCurrentHighlightText(text);
+  };
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }): void => {
     console.log(`PDF loaded successfully with ${numPages} pages.`);
@@ -23,6 +34,7 @@ const usePDFViewer = () => {
   };
 
   const clearPDFViewer = () => {
+    console.log("Clearing PDF viewer state");
     setCurrentPdfUrl(null);
     setCurrentHighlightText(null);
     setCurrentHighlightPage(1);
@@ -34,7 +46,7 @@ const usePDFViewer = () => {
     currentPdfUrl,
     setCurrentPdfUrl,
     currentHighlightText,
-    setCurrentHighlightText,
+    setCurrentHighlightText: setHighlightTextWithLogging,
     currentHighlightPage,
     setCurrentHighlightPage,
     currentNumPages,
@@ -47,4 +59,4 @@ const usePDFViewer = () => {
   };
 };
 
-export default usePDFViewer; 
+export default usePDFViewer;

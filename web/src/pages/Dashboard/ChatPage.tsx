@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import MainLayout from '../../layouts/MainLayout';
 import ChatMessage from '../../components/chat/ChatMessage';
@@ -25,18 +25,67 @@ export default function ChatPage() {
   
   const {
     currentPdfUrl,
+    setCurrentPdfUrl,
     currentHighlightText,
+    setCurrentHighlightText,
     currentHighlightPage,
+    setCurrentHighlightPage,
     currentNumPages,
     pdfError,
     onDocumentLoadSuccess,
     onDocumentLoadError,
   } = usePDFViewer();
 
+  // Add state to track the active message
+  const [activeMessageIndex, setActiveMessageIndex] = useState<number | null>(null);
+
   // Debug status updates
   useEffect(() => {
       console.log('ChatPage UI Status Update:', currentStatus);
   }, [currentStatus]);
+
+  // Debug PDF viewer props
+  useEffect(() => {
+    console.log('ChatPage PDF props for messages:', {
+      currentPdfUrl,
+      currentHighlightText,
+      currentHighlightPage,
+      chatHistoryLength: chatHistory.length
+    });
+  }, [currentPdfUrl, currentHighlightText, currentHighlightPage, chatHistory.length]);
+
+  // When chatHistory changes, set the active message to the last legal query with PDF
+  useEffect(() => {
+    if (chatHistory.length > 0) {
+      const lastLegalQueryIndex = [...chatHistory].reverse().findIndex(
+        msg => msg.answer.intent === 'LEGAL_QUERY' && msg.answer.pdfUrl
+      );
+      
+      if (lastLegalQueryIndex !== -1) {
+        const actualIndex = chatHistory.length - 1 - lastLegalQueryIndex;
+        setActiveMessageIndex(actualIndex);
+        
+        const message = chatHistory[actualIndex];
+        if (message.answer.pdfUrl) {
+          setCurrentPdfUrl(message.answer.pdfUrl);
+          setCurrentHighlightText(message.answer.originalText || null);
+          setCurrentHighlightPage(message.answer.pageNumber || 1);
+        }
+      }
+    }
+  }, [chatHistory.length]);
+
+  // Function to handle message click and set it as active
+  const handleMessageSelect = (index: number) => {
+    const message = chatHistory[index];
+    if (message.answer.intent === 'LEGAL_QUERY' && message.answer.pdfUrl) {
+      setActiveMessageIndex(index);
+      setCurrentPdfUrl(message.answer.pdfUrl);
+      setCurrentHighlightText(message.answer.originalText || null);
+      setCurrentHighlightPage(message.answer.pageNumber || 1);
+      console.log('Selected message:', message);
+    }
+  };
 
   return (
     <MainLayout 
@@ -55,19 +104,27 @@ export default function ChatPage() {
               </div>
             )}
             
-            {chatHistory.map((item, idx) => (
-              <ChatMessage
-                key={idx}
-                message={item}
-                currentPdfUrl={currentPdfUrl}
-                currentHighlightText={currentHighlightText}
-                currentHighlightPage={currentHighlightPage}
-                currentNumPages={currentNumPages}
-                pdfError={pdfError}
-                onDocumentLoadSuccess={onDocumentLoadSuccess}
-                onDocumentLoadError={onDocumentLoadError}
-              />
-            ))}
+            {chatHistory.map((item, idx) => {
+              console.log(`Rendering message ${idx}:`, item.answer.originalText);
+              return (
+                <div
+                  key={idx}
+                  onClick={() => handleMessageSelect(idx)}
+                  className={`cursor-pointer ${activeMessageIndex === idx ? 'ring-2 ring-blue-300 rounded-2xl' : ''}`}
+                >
+                  <ChatMessage
+                    message={item}
+                    currentPdfUrl={currentPdfUrl}
+                    currentHighlightText={currentHighlightText}
+                    currentHighlightPage={currentHighlightPage}
+                    currentNumPages={currentNumPages}
+                    pdfError={pdfError}
+                    onDocumentLoadSuccess={onDocumentLoadSuccess}
+                    onDocumentLoadError={onDocumentLoadError}
+                  />
+                </div>
+              );
+            })}
 
             {/* Render StatusDisplay OR Loader when isLoading */}
             

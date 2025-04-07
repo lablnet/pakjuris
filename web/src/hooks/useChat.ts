@@ -89,6 +89,20 @@ const useChat = (initialConversationId?: string) => {
       }
       
       setChatHistory(formattedHistory);
+
+      // Set the PDF viewer state to the last legal query with a PDF
+      if (formattedHistory.length > 0) {
+        const lastLegalQuery = [...formattedHistory].reverse().find(
+          msg => msg.answer.intent === 'LEGAL_QUERY' && msg.answer.pdfUrl && msg.answer.originalText
+        );
+
+        if (lastLegalQuery) {
+          console.log("Setting PDF viewer state from conversation history:", lastLegalQuery);
+          setCurrentPdfUrl(lastLegalQuery.answer.pdfUrl || null);
+          setCurrentHighlightText(lastLegalQuery.answer.originalText || null);
+          setCurrentHighlightPage(lastLegalQuery.answer.pageNumber || 1);
+        }
+      }
     } catch (error) {
       console.error('Error loading conversation:', error);
     } finally {
@@ -131,7 +145,7 @@ const useChat = (initialConversationId?: string) => {
     setQuestion(''); // Clear input immediately
 
     // Optimistically add user question to history
-    const newUserMessage = { question: userQuestion, answer: { summary: '...', intent: 'LEGAL_QUERY' } }; // Placeholder answer
+    const newUserMessage = { question: userQuestion, answer: { summary: '...', intent: 'LEGAL_QUERY' } };
     setChatHistory((prev) => [...prev, newUserMessage as ChatMessage]);
 
     try {
@@ -141,6 +155,10 @@ const useChat = (initialConversationId?: string) => {
         conversationId: conversationId // Send conversationId if it exists
       });
       const responseData = res;
+
+      // Debug the response data to see the originalText value
+      console.log("API Response Data:", responseData);
+      console.log("Original Text from API:", responseData.originalText);
 
       // Update the conversation ID if this is a new conversation
       if (responseData.conversationId && !conversationId) {
@@ -153,6 +171,7 @@ const useChat = (initialConversationId?: string) => {
       setChatHistory((prev) => {
         const updatedHistory = [...prev];
         updatedHistory[updatedHistory.length - 1].answer = responseData;
+        console.log("Updated message history with answer:", updatedHistory[updatedHistory.length - 1]);
         return updatedHistory;
       });
 
@@ -160,7 +179,16 @@ const useChat = (initialConversationId?: string) => {
       if (responseData.intent === 'LEGAL_QUERY' && responseData.pdfUrl) {
         console.log("Setting PDF details:", responseData);
         setCurrentPdfUrl(responseData.pdfUrl);
-        setCurrentHighlightText(responseData.originalText || null);
+        
+        // Ensure we have the originalText before setting it
+        if (responseData.originalText) {
+          console.log("Setting highlight text to:", responseData.originalText);
+          setCurrentHighlightText(responseData.originalText);
+        } else {
+          console.warn("No originalText found in response:", responseData);
+          setCurrentHighlightText(null);
+        }
+        
         setCurrentHighlightPage(responseData.pageNumber || 1);
         setCurrentNumPages(null); // Reset numPages until PDF loads
       }
