@@ -3,9 +3,13 @@ import { motion } from 'framer-motion';
 import { Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
+import { FeedbackDialog } from '../ui';
+import api from '../../services/api';
+import { useToast } from '../ui/ToastComp';
 
 interface ChatMessageProps {
   message: {
+    _id?: string; // Add message ID for feedback
     question: string;
     answer: {
       intent: 'GREETING' | 'LEGAL_QUERY' | 'CLARIFICATION_NEEDED' | 'IRRELEVANT' | 'NO_MATCH' | 'DISCUSSION';
@@ -31,6 +35,15 @@ interface ChatMessageProps {
   resetZoom?: () => void;
 }
 
+// Feedback types
+type FeedbackStatus = 'liked' | 'disliked' | null;
+
+interface Feedback {
+  _id: string;
+  status: FeedbackStatus;
+  reason?: string;
+}
+
 const ChatMessage: React.FC<ChatMessageProps> = ({
   message,
   currentPdfUrl,
@@ -46,6 +59,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   resetZoom
 }) => {
   const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const toast = useToast();
   
   // Debug logging for highlight text
   useEffect(() => {
@@ -67,6 +85,105 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   
   const togglePdfPreview = () => {
     setShowPdfPreview(prev => !prev);
+  };
+
+  // Fetch existing feedback if available
+  useEffect(() => {
+    if (message._id) {
+      const fetchFeedback = async () => {
+        try {
+          const response = await api.chat.feedback.get(message._id!);
+          if (response.feedback) {
+            setFeedback(response.feedback);
+          }
+        } catch (error) {
+          console.error('Error fetching feedback:', error);
+        }
+      };
+      
+      fetchFeedback();
+    }
+  }, [message._id]);
+
+  // Handle feedback submission
+  const handleFeedback = async (status: FeedbackStatus, reason?: string) => {
+    if (!message._id || !status) return;
+    
+    setIsSubmitting(true);
+    try {
+      const feedbackData: { 
+        messageId: string; 
+        status: 'liked' | 'disliked';
+        reason?: string;
+      } = {
+        messageId: message._id,
+        status: status
+      };
+      
+      // Only add reason if it's provided and status is disliked
+      if (reason && status === 'disliked') {
+        feedbackData.reason = reason;
+      }
+      
+      const response = await api.chat.feedback.create(feedbackData);
+      
+      setFeedback(response.feedback);
+      toast({ 
+        type: 'success', 
+        message: status === 'liked' ? 'Thanks for your feedback!' : 'Thanks for letting us know.'
+      });
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast({ 
+        type: 'error', 
+        message: 'Failed to submit feedback. Please try again.'
+      });
+    } finally {
+      setIsSubmitting(false);
+      setShowFeedbackDialog(false);
+    }
+  };
+
+  // Handle like button click
+  const handleLike = () => {
+    if (feedback?.status) return; // Prevent changing feedback if already submitted
+    handleFeedback('liked');
+  };
+
+  // Handle dislike button click
+  const handleDislike = () => {
+    if (feedback?.status) return; // Prevent changing feedback if already submitted
+    setShowFeedbackDialog(true);
+  };
+
+  // Handle dislike feedback submission
+  const handleDislikeFeedback = (reason: string) => {
+    handleFeedback('disliked', reason);
+  };
+
+  // Copy message text to clipboard
+  const handleCopy = () => {
+    if (message.answer.summary) {
+      navigator.clipboard.writeText(message.answer.summary);
+      toast({ type: 'success', message: 'Copied to clipboard' });
+    }
+  };
+
+  // Determine feedback button styles based on current feedback
+  const getLikeButtonClass = () => {
+    const baseClass = "p-2 rounded-full transition-colors";
+    if (feedback?.status === 'liked') {
+      return `${baseClass} text-green-600 bg-green-100`;
+    }
+    return `${baseClass} text-gray-500 hover:text-green-600 hover:bg-green-50`;
+  };
+
+  const getDislikeButtonClass = () => {
+    const baseClass = "p-2 rounded-full transition-colors";
+    if (feedback?.status === 'disliked') {
+      return `${baseClass} text-red-600 bg-red-100`;
+    }
+    return `${baseClass} text-gray-500 hover:text-red-600 hover:bg-red-50`;
   };
 
   // Zoom controls component
@@ -174,6 +291,40 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
               <p className="text-gray-800 whitespace-pre-wrap text-sm md:text-base">
                 🤖 {message.answer.summary}
               </p>
+              
+              {/* Feedback and Copy buttons */}
+              <div className="flex items-center justify-end mt-3 space-x-1 border-t pt-2">
+                <button
+                  onClick={handleCopy}
+                  className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                  title="Copy to clipboard"
+                  disabled={isSubmitting}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleLike}
+                  className={getLikeButtonClass()}
+                  title="Like this response"
+                  disabled={!!feedback?.status || isSubmitting}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleDislike}
+                  className={getDislikeButtonClass()}
+                  title="Dislike this response"
+                  disabled={!!feedback?.status || isSubmitting}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         ) : (
@@ -197,6 +348,40 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                   </small>
                 </motion.div>
               )}
+              
+              {/* Feedback and Copy buttons */}
+              <div className="flex items-center justify-end mt-4 space-x-1 border-t pt-2">
+                <button
+                  onClick={handleCopy}
+                  className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                  title="Copy to clipboard"
+                  disabled={isSubmitting}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleLike}
+                  className={getLikeButtonClass()}
+                  title="Like this response"
+                  disabled={!!feedback?.status || isSubmitting}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleDislike}
+                  className={getDislikeButtonClass()}
+                  title="Dislike this response"
+                  disabled={!!feedback?.status || isSubmitting}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2" />
+                  </svg>
+                </button>
+              </div>
               
               {/* Mobile: Toggle PDF Preview Button */}
               {currentPdfUrl === message.answer.pdfUrl && (
@@ -377,6 +562,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         )}
       </motion.div>
+
+      {/* Feedback Dialog */}
+      <FeedbackDialog
+        isOpen={showFeedbackDialog}
+        onClose={() => setShowFeedbackDialog(false)}
+        onSubmit={handleDislikeFeedback}
+        title="Please tell us why you disliked this response"
+      />
     </motion.div>
   );
 };
