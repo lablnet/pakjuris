@@ -65,7 +65,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       </div>
       
       <footer className="flex-shrink-0 text-center py-3 text-xs text-gray-500 bg-white border-t border-gray-200">
-        <p className="mb-1">© {new Date().getFullYear()} PakJuris - Powered by AI</p>
+        <p className="mb-1">© {new Date().getFullYear()} PakJuris - A product of <a href="https://fluxhub.ai" target='_blank' className="underline text-blue-500 hover:text-blue-700">FluxHub.ai</a></p>
         <p className="text-amber-600">
           <span className="mr-1">⚠️</span> 
           The Bot can make mistakes. Check important information with the original source.
