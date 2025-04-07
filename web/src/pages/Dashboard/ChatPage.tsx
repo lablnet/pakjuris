@@ -4,8 +4,8 @@ import MainLayout from '../../layouts/MainLayout';
 import ChatMessage from '../../components/chat/ChatMessage';
 import ChatInput from '../../components/chat/ChatInput';
 import StatusDisplay from '../../components/status/StatusDisplay';
-import useChat from '../../hooks/useChat';
-import usePDFViewer from '../../hooks/usePDFViewer';
+import useChat from '../../hooks/chat/useChat';
+import usePDFViewer from '../../hooks/pdf/usePDFViewer';
 
 export default function ChatPage() {
   // Get conversation ID from URL params

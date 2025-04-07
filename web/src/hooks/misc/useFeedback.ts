@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import api from '../services/api';
-import { useToast } from '../components/ui/ToastComp';
+import api from '../../services/api';
+import { useToast } from '../../components/ui/ToastComp';
 
 // Feedback types
 type FeedbackStatus = 'liked' | 'disliked' | null;

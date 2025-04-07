@@ -4,9 +4,9 @@ import { Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { FeedbackDialog } from '../ui';
-import useFeedback from '../../hooks/useFeedback';
-import usePdfPreview from '../../hooks/usePdfPreview';
-import useClipboard from '../../hooks/useClipboard';
+import { useFeedback } from '../../hooks/misc';
+import { usePdfPreview } from '../../hooks/pdf';
+import { useClipboard } from '../../hooks/ui';
 
 interface ChatMessageProps {
   message: {

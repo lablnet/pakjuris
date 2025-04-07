@@ -1,4 +1,4 @@
-import { useToast } from '../components/ui/ToastComp';
+import { useToast } from '../../components/ui/ToastComp';
 
 const useClipboard = () => {
   const toast = useToast();

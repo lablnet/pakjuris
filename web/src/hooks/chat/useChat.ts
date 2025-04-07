@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import usePDFViewer from './usePDFViewer';
-import useStatusStore from '../stores/statusStore';
+import usePDFViewer from '../pdf/usePDFViewer';
+import useStatusStore from '../../stores/statusStore';
 import useSSE from './useSSE';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
+import { api } from '../../services/api';
 
 
 interface ChatMessage {

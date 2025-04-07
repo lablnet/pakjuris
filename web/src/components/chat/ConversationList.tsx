@@ -5,10 +5,10 @@ import { useToast } from '../ui/ToastComp';
 import Dialog from '../ui/Dialog';
 import { useUserStore } from '../../stores/userStore';
 import useAuth from '../../hooks/auth/useAuth';
-import useConversations from '../../hooks/useConversations';
-import useActionMenu from '../../hooks/useActionMenu';
-import useDialogState from '../../hooks/useDialogState';
-import useClipboard from '../../hooks/useClipboard';
+import useConversations from '../../hooks/chat/useConversations';
+import useActionMenu from '../../hooks/ui/useActionMenu';
+import useDialogState from '../../hooks/ui/useDialogState';
+import useClipboard from '../../hooks/ui/useClipboard';
 
 interface Conversation {
   _id: string;

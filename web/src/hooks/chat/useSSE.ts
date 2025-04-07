@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import useStatusStore from '../stores/statusStore'
+import useStatusStore from '../../stores/statusStore'
 
 // Bring back the interface if it's used internally
 interface StatusUpdate {
