@@ -168,7 +168,7 @@ export default function Home() {
                       <div className="p-2 bg-gray-200 border-b border-gray-300 flex justify-between items-center">
                         <div className="flex items-center gap-1">
                           <PDFIcon />
-                          <span className="text-xs font-medium">constitution.pdf</span>
+                          <span className="text-xs font-medium">Companies Act 2017 (2017) (Page 46)</span>
                         </div>
                         <div className="flex space-x-1">
                           <div className="w-2 h-2 rounded-full bg-red-500"></div>
@@ -177,11 +177,14 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="p-4 text-sm">
-                        <p>Article 1: [1] Pakistan shall be a Federal Republic to be known as the Islamic Republic of Pakistan, hereinafter referred to as Pakistan.</p>
-                        <p className="my-2 p-1 bg-yellow-100 rounded">[2] The territories of Pakistan shall comprise -</p>
-                        <p>(a) the Provinces of Balochistan, the Khyber Pakhtunkhwa, Punjab and Sindh;</p>
-                        <p>(b) the Islamabad Capital Territory, hereinafter referred to as the Federal Capital;</p>
-                        <p className="mt-2">[3] Majlis-e-Shoora (Parliament) may by law admit into the Federation new States or areas on such terms and conditions as it thinks fit.</p>
+                        <p className="my-2 p-1 bg-yellow-100 rounded">10. Prohibition of certain names.—(1) No company shall be registered by a name which contains such word or expression, as may be notified by the Commission or in the opinion of the registrar is—</p>
+                        <p>(a) identical with or resemble or similar to the name of a company; or</p>
+                        <p>(b) inappropriate; or</p>
+                        <p>(c) undesirable; or</p>
+                        <p>(d) deceptive; or</p>
+                        <p>(e) designed to exploit or offend religious susceptibilities of the people; or</p>
+                        <p>(f) any other ground as may be specified.</p>
+                        <p className="mt-2">(2) Except with prior approval in writing of the Commission, no company shall be registered by a name which contains any word suggesting or calculated to suggest...</p>
                       </div>
                     </div>
                   </div>
