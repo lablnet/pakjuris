@@ -1,3 +1,4 @@
 export { default as Button } from './Button';
 export { default as Input } from './Input';
-export { ToastManager } from './ToastComp';
+export { ToastManager, useToast } from './ToastComp';
+export { default as Dialog } from './Dialog';
