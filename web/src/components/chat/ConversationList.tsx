@@ -331,7 +331,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
       {/* Conversations List */}
       <div className="flex-grow overflow-y-auto">
         {isLoading ? (
-          <div className="flex justify-center items-center h-24">
+          <div className="flex justify-center items-center h-24 w-full">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
           </div>
         ) : error ? (
