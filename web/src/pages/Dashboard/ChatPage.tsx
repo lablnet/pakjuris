@@ -43,6 +43,7 @@ export default function ChatPage() {
 
   // Add state to track the active message
   const [activeMessageIndex, setActiveMessageIndex] = useState<number | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Debug status updates
   useEffect(() => {
@@ -112,13 +113,31 @@ export default function ChatPage() {
     }
   };
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
   return (
     <MainLayout 
       conversationId={activeConversationId}
       onSelectConversation={handleSelectConversation}
       startNewChat={startNewChat}
+      sidebarOpen={sidebarOpen}
+      onToggleSidebar={toggleSidebar}
     >
       <div className="flex flex-col p-4 gap-4 h-full">
+        {/* Mobile menu toggle button */}
+        <div className="md:hidden flex items-center mb-2">
+          <button 
+            onClick={toggleSidebar}
+            className="p-2 rounded-lg bg-white shadow hover:bg-gray-100"
+            aria-label="Toggle menu"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
         
         {/* Chat History Area */}
         <div className="flex-grow overflow-y-auto bg-gray-50 rounded-2xl p-4 space-y-6">
