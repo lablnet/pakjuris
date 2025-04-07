@@ -49,7 +49,10 @@ const ConversationList: React.FC<ConversationListProps> = ({
   
   const handleNewChat = () => {
     navigate('/chat');
-    onToggle();
+    // Close the sidebar on mobile after navigation
+    if (window.innerWidth < 768) {
+      onToggle();
+    }
   };
   
   const handleSelectConversation = (id: string) => {
@@ -68,6 +71,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
         <button 
           onClick={onToggle}
           className="p-1 rounded-full hover:bg-gray-200 md:hidden"
+          aria-label="Close sidebar"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

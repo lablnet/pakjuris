@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/layout/Header';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import ConversationList from '../components/chat/ConversationList';
 
 interface MainLayoutProps {
@@ -17,6 +17,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   showConversations = true 
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+  const [isChatPage, setIsChatPage] = useState(false);
+  
+  useEffect(() => {
+    // Check if current path is a chat page
+    const isChat = location.pathname === '/chat' || location.pathname.startsWith('/chat/');
+    setIsChatPage(isChat);
+    
+    // Close sidebar when navigating away from chat pages
+    if (!isChat) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname]);
   
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -24,19 +37,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   
   return (
     <div className="flex flex-col h-screen w-full bg-gray-100">
-      <Header onMenuClick={toggleSidebar} />
+      <Header onMenuClick={isChatPage ? toggleSidebar : undefined} />
       
       <div className="flex flex-grow overflow-hidden">
         {/* Overlay for mobile when sidebar is open */}
-        {sidebarOpen && (
+        {sidebarOpen && isChatPage && (
           <div 
             className="fixed inset-0 z-20 bg-gray-900 bg-opacity-50 md:hidden"
             onClick={toggleSidebar}
           />
         )}
         
-        {/* Conversation Sidebar */}
-        {showConversations && (
+        {/* Conversation Sidebar - Only show on chat pages */}
+        {showConversations && isChatPage && (
           <ConversationList 
             currentConversationId={conversationId}
             onSelect={onSelectConversation}
