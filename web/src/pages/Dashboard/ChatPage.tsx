@@ -34,6 +34,10 @@ export default function ChatPage() {
     pdfError,
     onDocumentLoadSuccess,
     onDocumentLoadError,
+    scale,
+    zoomIn,
+    zoomOut,
+    resetZoom
   } = usePDFViewer();
 
   // Add state to track the active message
@@ -141,6 +145,10 @@ export default function ChatPage() {
                     pdfError={pdfError}
                     onDocumentLoadSuccess={onDocumentLoadSuccess}
                     onDocumentLoadError={onDocumentLoadError}
+                    scale={scale}
+                    zoomIn={zoomIn}
+                    zoomOut={zoomOut}
+                    resetZoom={resetZoom}
                   />
                 </div>
               );
