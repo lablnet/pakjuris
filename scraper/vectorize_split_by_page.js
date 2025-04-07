@@ -4,7 +4,7 @@ const path = require('path');
 const { MongoClient } = require('mongodb');
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { OpenAI } = require("openai");
-const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+const pdf = require('pdf-parse');
 
 
 // --- Config ---
@@ -46,28 +46,51 @@ async function initDB() {
     return mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
 }
 
-async function extractPagesFromPDF(pdfBuffer) {
-    const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
-    const pdfDocument = await loadingTask.promise;
-    const numPages = pdfDocument.numPages;
+const getSpecificPage = async(data, pageNum) => {
+    try {
+        // Get all text and split by page breaks
+        const allText = data.text;
 
-    const pages = [];
+        // Find page markers in the text (page numbers are usually at the bottom)
+        const pageRegex = /Page\s+(\d+)\s+of\s+\d+/g;
+        let match;
+        let pageLocations = [];
 
-    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-        const page = await pdfDocument.getPage(pageNum);
-        const textContent = await page.getTextContent();
-        const text = textContent.items.map(item => item.str).join(' ').replace(/\s+/g, ' ').trim();
-
-        if (text.length > 50) {
-            pages.push({ pageNumber: pageNum, text });
-        } else {
-            console.log(`Skipping page ${pageNum} (insufficient content).`);
+        // Find all page number locations in the text
+        while ((match = pageRegex.exec(allText)) !== null) {
+            pageLocations.push({
+                pageNum: parseInt(match[1]),
+                position: match.index,
+                marker: match[0] // Store the actual marker text
+            });
         }
+
+        console.log(`Found ${pageNum} of ${pageLocations.length} page markers`);
+
+        // Find the requested page
+        const pageIndex = pageLocations.findIndex(p => p.pageNum === pageNum);
+
+        if (pageIndex !== -1) {
+            // Start from the actual page marker including the text "Page X of Y"
+            const startPos = pageLocations[pageIndex].position;
+
+            // End at the next page marker (or end of document)
+            const endPos = pageIndex < pageLocations.length - 1 ?
+                pageLocations[pageIndex + 1].position : allText.length;
+
+            // Extract just this page's content
+            let pageContent = allText.substring(startPos, endPos);
+            // remove Page pageNum of pageNum
+            pageContent = pageContent.replace(`Page ${pageNum} of ${pageNum}`, '');
+            return pageContent;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error('Error parsing PDF:', error);
+        return null;
     }
-
-    return pages;
 }
-
 
 // More robust lookup - consider normalizing titles if needed
 async function findExistingDoc(collection, year, title) {
@@ -93,15 +116,15 @@ async function vectorizePDF(filePath, collection) {
         const pdfBuffer = fs.readFileSync(filePath);
 
         // Using robust extraction
-        const pages = await extractPagesFromPDF(pdfBuffer);
+        const data = await pdf(pdfBuffer);
+        const numPages = data.numpages;
 
-
-        if (pages.length === 0) {
+        if (numPages === 0) {
             console.warn(`⚠️ No usable pages extracted from ${fileName}.`);
             return;
         }
 
-        console.log(`Extracted ${pages.length} usable pages from PDF.`);
+        console.log(`Extracted ${numPages} usable pages from PDF.`);
 
         const baseName = fileName.replace('.pdf', '');
         const yearMatch = baseName.match(/^(\d{4})_/);
@@ -116,25 +139,31 @@ async function vectorizePDF(filePath, collection) {
 
         const url = existingDoc.url;
         const pineconeVectors = [];
-
-        for (const page of pages) {
+        let i = 1;
+        while (i <= numPages) {
             try {
+                const pageContent = await getSpecificPage(data, i);
+                if (!pageContent) {
+                    console.error(`❌ No page content found for page ${i}`);
+                    i++;
+                    continue;
+                }
                 const embeddingResult = await azureClient.embeddings.create({
-                    input: page.text
+                    input: pageContent
                 });
                 if (!embeddingResult.data || !embeddingResult.data[0] || !embeddingResult.data[0].embedding) {
-                    console.error(`❌ No embedding result for page ${page.pageNumber}`);
+                    console.error(`❌ No embedding result for page ${i}`);
                     continue;
                 }
 
                 const vector = embeddingResult.data[0].embedding;
 
                 pineconeVectors.push({
-                    id: `${existingDoc._id.toString()}_page_${page.pageNumber}`,
+                    id: `${existingDoc._id.toString()}_page_${i}`,
                     values: vector,
                     metadata: {
-                        pageNumber: page.pageNumber,
-                        text: page.text,
+                        pageNumber: i,
+                        text: pageContent,
                         title: existingDoc.title,
                         year: existingDoc.year,
                         fileName,
@@ -143,8 +172,9 @@ async function vectorizePDF(filePath, collection) {
                 });
 
             } catch (embedError) {
-                console.error(`❌ Error embedding page ${page.pageNumber}: ${embedError.message}`);
+                console.error(`❌ Error embedding page ${i}: ${embedError.message}`);
             }
+            i++;
         }
 
         // Pinecone Upsert
