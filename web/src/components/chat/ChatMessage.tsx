@@ -25,6 +25,10 @@ interface ChatMessageProps {
   pdfError: string | null;
   onDocumentLoadSuccess: ({ numPages }: { numPages: number }) => void;
   onDocumentLoadError: (error: Error) => void;
+  scale?: number;
+  zoomIn?: () => void;
+  zoomOut?: () => void;
+  resetZoom?: () => void;
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -35,7 +39,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   currentNumPages,
   pdfError,
   onDocumentLoadSuccess,
-  onDocumentLoadError
+  onDocumentLoadError,
+  scale = 1.0,
+  zoomIn,
+  zoomOut,
+  resetZoom
 }) => {
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   
@@ -60,6 +68,43 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   const togglePdfPreview = () => {
     setShowPdfPreview(prev => !prev);
   };
+
+  // Zoom controls component
+  const ZoomControls = () => (
+    <div className="flex items-center gap-1 text-gray-600">
+      <button
+        onClick={zoomOut}
+        className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+        title="Zoom out"
+        disabled={!zoomOut}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+        </svg>
+      </button>
+      <span className="text-xs">{Math.round(scale * 100)}%</span>
+      <button
+        onClick={resetZoom}
+        className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+        title="Reset zoom"
+        disabled={!resetZoom}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </button>
+      <button
+        onClick={zoomIn}
+        className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+        title="Zoom in"
+        disabled={!zoomIn}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
+    </div>
+  );
 
   return (
     <motion.div
@@ -157,19 +202,22 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                     <h3 className="font-semibold text-sm text-gray-700">
                       Document Preview (Page {currentHighlightPage} of {currentNumPages ?? '...'})
                     </h3>
-                    {currentPdfUrl && (
-                      <a 
-                        href={currentPdfUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                        Open PDF
-                      </a>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <ZoomControls />
+                      {currentPdfUrl && (
+                        <a 
+                          href={currentPdfUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                          Open PDF
+                        </a>
+                      )}
+                    </div>
                   </div>
                   {/* PDF Viewer */}
                   <div className="pdf-container flex-grow border border-gray-200 rounded-lg overflow-auto bg-gray-50 min-h-[200px] flex justify-center items-center">
@@ -188,7 +236,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                         }
                         error={<div className="p-4 text-red-500">Error loading PDF.</div>}
                       >
-                        {currentNumPages !== null && <Page pageNumber={currentHighlightPage} width={350} />}
+                        {currentNumPages !== null && <Page pageNumber={currentHighlightPage} width={350} scale={scale} />}
                       </Document>
                     ) : null}
                   </div>
@@ -221,19 +269,22 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                         <h3 className="font-semibold text-sm text-gray-700">
                           Document Preview (Page {currentHighlightPage} of {currentNumPages ?? '...'})
                         </h3>
-                        {currentPdfUrl && (
-                          <a 
-                            href={currentPdfUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                            Open PDF
-                          </a>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <ZoomControls />
+                          {currentPdfUrl && (
+                            <a 
+                              href={currentPdfUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                              Open PDF
+                            </a>
+                          )}
+                        </div>
                       </div>
                       
                       {/* Mobile PDF Viewer */}
@@ -253,7 +304,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                             }
                             error={<div className="p-4 text-red-500 text-sm">Error loading PDF.</div>}
                           >
-                            {currentNumPages !== null && <Page pageNumber={currentHighlightPage} width={window.innerWidth - 70} />}
+                            {currentNumPages !== null && <Page pageNumber={currentHighlightPage} width={window.innerWidth - 70} scale={scale} />}
                           </Document>
                         ) : null}
                       </div>
