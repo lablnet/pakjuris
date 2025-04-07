@@ -153,9 +153,24 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                   transition={{ delay: 0.3 }}
                   className="hidden md:flex w-1/2 flex-col border-l border-gray-200 pl-4 gap-2 min-h-[300px] overflow-hidden"
                 >
-                  <h3 className="font-semibold text-sm text-gray-700 flex-shrink-0">
-                    Document Preview (Page {currentHighlightPage} of {currentNumPages ?? '...'})
-                  </h3>
+                  <div className="flex justify-between items-center flex-shrink-0">
+                    <h3 className="font-semibold text-sm text-gray-700">
+                      Document Preview (Page {currentHighlightPage} of {currentNumPages ?? '...'})
+                    </h3>
+                    {currentPdfUrl && (
+                      <a 
+                        href={currentPdfUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Open PDF
+                      </a>
+                    )}
+                  </div>
                   {/* PDF Viewer */}
                   <div className="pdf-container flex-grow border border-gray-200 rounded-lg overflow-auto bg-gray-50 min-h-[200px] flex justify-center items-center">
                     {pdfError ? (
@@ -202,9 +217,24 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                     className="block md:hidden w-full mt-3 flex flex-col gap-3"
                   >
                     <div className="border-t border-gray-200 pt-3">
-                      <h3 className="font-semibold text-sm text-gray-700">
-                        Document Preview (Page {currentHighlightPage} of {currentNumPages ?? '...'})
-                      </h3>
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-semibold text-sm text-gray-700">
+                          Document Preview (Page {currentHighlightPage} of {currentNumPages ?? '...'})
+                        </h3>
+                        {currentPdfUrl && (
+                          <a 
+                            href={currentPdfUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            Open PDF
+                          </a>
+                        )}
+                      </div>
                       
                       {/* Mobile PDF Viewer */}
                       <div className="pdf-container mt-2 border border-gray-200 rounded-lg overflow-auto bg-gray-50 flex justify-center items-center">
