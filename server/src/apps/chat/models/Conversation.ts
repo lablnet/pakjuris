@@ -6,13 +6,17 @@ export interface IConversation extends Document {
   name: string;
   created_at: Date;
   updated_at: Date;
+  archived?: boolean;
+  shareId?: string;
 }
 
 const ConversationSchema: Schema = new Schema({
   userId: { type: String },
   name: { type: String, required: true },
   created_at: { type: Date, default: Date.now },
-  updated_at: { type: Date, default: Date.now }
+  updated_at: { type: Date, default: Date.now },
+  archived: { type: Boolean, default: false },
+  shareId: { type: String }
 });
 
 // Update the timestamp before saving
