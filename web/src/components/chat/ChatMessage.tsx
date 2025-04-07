@@ -257,7 +257,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                     </div>
                   </div>
                   {/* PDF Viewer */}
-                  <div className="pdf-container flex-grow border border-gray-200 rounded-lg overflow-auto bg-gray-50 min-h-[200px] flex justify-center items-center">
+                  <div className="pdf-container flex-grow border border-gray-200 rounded-lg overflow-auto bg-gray-50 min-h-[200px] flex justify-center items-start">
                     {pdfError ? (
                       <p className="text-red-600 p-4 text-center">{pdfError}</p>
                     ) : currentPdfUrl ? (
@@ -273,7 +273,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                         }
                         error={<div className="p-4 text-red-500">Error loading PDF.</div>}
                       >
-                        {currentNumPages !== null && <Page pageNumber={currentHighlightPage} width={350} scale={scale} />}
+                        {currentNumPages !== null && (
+                          <div className="pdf-page-container" style={{ padding: "10px" }}>
+                            <Page pageNumber={currentHighlightPage} width={350} scale={scale} />
+                          </div>
+                        )}
                       </Document>
                     ) : null}
                   </div>
@@ -325,7 +329,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                       <MobileZoomControls />
                       
                       {/* Mobile PDF Viewer */}
-                      <div className="pdf-container mt-2 border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex justify-center items-center">
+                      <div className="pdf-container mt-2 border border-gray-200 rounded-lg overflow-auto bg-gray-50 flex justify-center items-start">
                         {pdfError ? (
                           <p className="text-red-600 p-4 text-center text-sm">{pdfError}</p>
                         ) : currentPdfUrl ? (
@@ -342,7 +346,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                             error={<div className="p-4 text-red-500 text-sm">Error loading PDF.</div>}
                           >
                             {currentNumPages !== null && (
-                              <div className="overflow-auto max-w-full">
+                              <div className="pdf-page-container overflow-visible" style={{ padding: "10px", minHeight: "400px" }}>
                                 <Page 
                                   pageNumber={currentHighlightPage} 
                                   scale={scale}
