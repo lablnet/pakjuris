@@ -158,7 +158,11 @@ export default function ChatPage() {
                   className={`cursor-pointer ${activeMessageIndex === idx ? 'ring-2 ring-blue-300 rounded-2xl' : ''}`}
                 >
                   <ChatMessage
-                    message={item}
+                    message={{
+                      _id: item._id,
+                      question: item.question,
+                      answer: item.answer
+                    }}
                     currentPdfUrl={currentPdfUrl}
                     currentHighlightText={currentHighlightText}
                     currentHighlightPage={currentHighlightPage}
