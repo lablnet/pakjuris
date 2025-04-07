@@ -20,7 +20,8 @@ export default function ChatPage() {
     chatEndRef,
     currentStatus,
     conversationId: activeConversationId,
-    handleSelectConversation
+    handleSelectConversation,
+    startNewChat
   } = useChat(conversationId);
   
   const {
@@ -115,6 +116,7 @@ export default function ChatPage() {
     <MainLayout 
       conversationId={activeConversationId}
       onSelectConversation={handleSelectConversation}
+      startNewChat={startNewChat}
     >
       <div className="flex flex-col p-4 gap-4 h-full">
         
