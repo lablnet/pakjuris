@@ -8,6 +8,7 @@ import { api } from '../services/api';
 
 
 interface ChatMessage {
+  _id?: string; // Add ID for feedback functionality
   question: string;
   answer: {
     intent: 'GREETING' | 'LEGAL_QUERY' | 'CLARIFICATION_NEEDED' | 'IRRELEVANT' | 'NO_MATCH' | 'DISCUSSION';
@@ -73,6 +74,7 @@ const useChat = (initialConversationId?: string) => {
         
         if (userMsg && assistantMsg && userMsg.role === 'user' && assistantMsg.role === 'assistant') {
           formattedHistory.push({
+            _id: assistantMsg._id, // Include the message ID for feedback
             question: userMsg.content,
             answer: {
               intent: assistantMsg.metadata?.intent || 'LEGAL_QUERY',
