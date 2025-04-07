@@ -31,11 +31,7 @@ if (!PINECONE_API_KEY || !PINECONE_INDEX_NAME || !AZURE_OPENAI_ENDPOINT || !AZUR
 
 // --- Text to Test ---
 // PASTE THE EXACT TEXT FROM YOUR PDF HERE
-const textToTest = `Obligation to register certain associations, partnerships as companies.—(1) No
-association, partnership or entity consisting of more than twenty persons shall be formed for the purpose
-of carrying on any business that has for its object the acquisition of gain by the association, partnership or
-entity, or by the individual members thereof, unless it is registered as a company under this Act and any
-violation of this section shall be an offence punishable under this section.`; // End of pasted text
+const textToTest = `prohibited company names`; // End of pasted text
 
 
 // --- Initialize Services ---
@@ -115,7 +111,7 @@ async function runTest() {
             queryResponse.matches.forEach((match, index) => {
                         const score = match.score * 100; // Convert to percentage
                         const metadata = match.metadata || {};
-                        const textPreview = metadata.text ? metadata.text.substring(0, 150).replace(/\n/g, ' ') + '...' : '[No Text Metadata]';
+                        const textPreview = metadata.text ? metadata.text.replace(/\n/g, ' ') + '...' : '[No Text Metadata]';
 
                         console.log(`   Result ${index + 1}:`);
                         console.log(`     Score: ${score.toFixed(2)}%`);
