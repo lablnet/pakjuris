@@ -6,6 +6,7 @@ const usePDFViewer = () => {
   const [currentHighlightPage, setCurrentHighlightPage] = useState<number>(1);
   const [currentNumPages, setCurrentNumPages] = useState<number | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [scale, setScale] = useState<number>(1.0);
 
   // Debug: Log when highlights are set
   useEffect(() => {
@@ -40,6 +41,20 @@ const usePDFViewer = () => {
     setCurrentHighlightPage(1);
     setCurrentNumPages(null);
     setPdfError(null);
+    setScale(1.0); // Reset scale when clearing the viewer
+  };
+
+  // Zoom functions
+  const zoomIn = () => {
+    setScale(prevScale => Math.min(prevScale + 0.2, 3.0)); // Limit max zoom to 3x
+  };
+
+  const zoomOut = () => {
+    setScale(prevScale => Math.max(prevScale - 0.2, 0.5)); // Limit min zoom to 0.5x
+  };
+
+  const resetZoom = () => {
+    setScale(1.0);
   };
 
   return {
@@ -55,7 +70,11 @@ const usePDFViewer = () => {
     setPdfError,
     onDocumentLoadSuccess,
     onDocumentLoadError,
-    clearPDFViewer
+    clearPDFViewer,
+    scale,
+    zoomIn,
+    zoomOut,
+    resetZoom
   };
 };
 
