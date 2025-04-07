@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { FeedbackDialog } from '../ui';
-import api from '../../services/api';
-import { useToast } from '../ui/ToastComp';
+import useFeedback from '../../hooks/useFeedback';
+import usePdfPreview from '../../hooks/usePdfPreview';
+import useClipboard from '../../hooks/useClipboard';
 
 interface ChatMessageProps {
   message: {
@@ -35,15 +36,6 @@ interface ChatMessageProps {
   resetZoom?: () => void;
 }
 
-// Feedback types
-type FeedbackStatus = 'liked' | 'disliked' | null;
-
-interface Feedback {
-  _id: string;
-  status: FeedbackStatus;
-  reason?: string;
-}
-
 const ChatMessage: React.FC<ChatMessageProps> = ({
   message,
   currentPdfUrl,
@@ -58,12 +50,31 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   zoomOut,
   resetZoom
 }) => {
-  const [showPdfPreview, setShowPdfPreview] = useState(false);
-  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const toast = useToast();
+  // Use custom hooks
+  const {
+    feedback,
+    isSubmitting,
+    showFeedbackDialog,
+    setShowFeedbackDialog,
+    handleLike,
+    handleDislike,
+    handleDislikeFeedback,
+    getLikeButtonClass,
+    getDislikeButtonClass
+  } = useFeedback(message._id);
+
+  const {
+    showPdfPreview,
+    togglePdfPreview,
+    highlightText
+  } = usePdfPreview({
+    pdfUrl: message.answer.pdfUrl || null,
+    originalText: message.answer.originalText || null,
+    currentPdfUrl,
+    currentHighlightText
+  });
+
+  const { copyToClipboard } = useClipboard();
   
   // Debug logging for highlight text
   useEffect(() => {
@@ -75,115 +86,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
       currentHighlightPage
     });
   }, [message, currentHighlightText, currentPdfUrl, currentHighlightPage]);
-  
-  // Use message's originalText as highlight text when this message's PDF is shown
-  const highlightText = currentPdfUrl === message.answer.pdfUrl 
-    ? message.answer.originalText || currentHighlightText
-    : (currentPdfUrl === null && message.answer.originalText) 
-      ? message.answer.originalText // Use message's own text if no PDF is currently selected
-      : currentHighlightText;
-  
-  const togglePdfPreview = () => {
-    setShowPdfPreview(prev => !prev);
-  };
-
-  // Fetch existing feedback if available
-  useEffect(() => {
-    if (message._id) {
-      const fetchFeedback = async () => {
-        try {
-          const response = await api.chat.feedback.get(message._id!);
-          if (response.feedback) {
-            setFeedback(response.feedback);
-          }
-        } catch (error) {
-          console.error('Error fetching feedback:', error);
-        }
-      };
-      
-      fetchFeedback();
-    }
-  }, [message._id]);
-
-  // Handle feedback submission
-  const handleFeedback = async (status: FeedbackStatus, reason?: string) => {
-    if (!message._id || !status) return;
-    
-    setIsSubmitting(true);
-    try {
-      const feedbackData: { 
-        messageId: string; 
-        status: 'liked' | 'disliked';
-        reason?: string;
-      } = {
-        messageId: message._id,
-        status: status
-      };
-      
-      // Only add reason if it's provided and status is disliked
-      if (reason && status === 'disliked') {
-        feedbackData.reason = reason;
-      }
-      
-      const response = await api.chat.feedback.create(feedbackData);
-      
-      setFeedback(response.feedback);
-      toast({ 
-        type: 'success', 
-        message: status === 'liked' ? 'Thanks for your feedback!' : 'Thanks for letting us know.'
-      });
-    } catch (error) {
-      console.error('Error submitting feedback:', error);
-      toast({ 
-        type: 'error', 
-        message: 'Failed to submit feedback. Please try again.'
-      });
-    } finally {
-      setIsSubmitting(false);
-      setShowFeedbackDialog(false);
-    }
-  };
-
-  // Handle like button click
-  const handleLike = () => {
-    if (feedback?.status) return; // Prevent changing feedback if already submitted
-    handleFeedback('liked');
-  };
-
-  // Handle dislike button click
-  const handleDislike = () => {
-    if (feedback?.status) return; // Prevent changing feedback if already submitted
-    setShowFeedbackDialog(true);
-  };
-
-  // Handle dislike feedback submission
-  const handleDislikeFeedback = (reason: string) => {
-    handleFeedback('disliked', reason);
-  };
 
   // Copy message text to clipboard
   const handleCopy = () => {
     if (message.answer.summary) {
-      navigator.clipboard.writeText(message.answer.summary);
-      toast({ type: 'success', message: 'Copied to clipboard' });
+      copyToClipboard(message.answer.summary);
     }
-  };
-
-  // Determine feedback button styles based on current feedback
-  const getLikeButtonClass = () => {
-    const baseClass = "p-2 rounded-full transition-colors";
-    if (feedback?.status === 'liked') {
-      return `${baseClass} text-green-600 bg-green-100`;
-    }
-    return `${baseClass} text-gray-500 hover:text-green-600 hover:bg-green-50`;
-  };
-
-  const getDislikeButtonClass = () => {
-    const baseClass = "p-2 rounded-full transition-colors";
-    if (feedback?.status === 'disliked') {
-      return `${baseClass} text-red-600 bg-red-100`;
-    }
-    return `${baseClass} text-gray-500 hover:text-red-600 hover:bg-red-50`;
   };
 
   // Zoom controls component
