@@ -137,6 +137,12 @@ const api = {
         axiosWrapper(axiosInstance.put(`/chat/conversations/${id}`, data)),
       delete: (id: string): Promise<any> =>
         axiosWrapper(axiosInstance.delete(`/chat/conversations/${id}`)),
+      archive: (id: string, archived: boolean): Promise<any> =>
+        axiosWrapper(axiosInstance.patch(`/chat/conversations/${id}/archive`, { archived })),
+      share: (id: string): Promise<any> =>
+        axiosWrapper(axiosInstance.post(`/chat/conversations/${id}/share`)),
+      listArchived: (): Promise<any> =>
+        axiosWrapper(axiosInstance.get('/chat/conversations/archived')),
     },
     query: (data: any): Promise<any> =>
       axiosWrapper(axiosInstance.post('/chat/query/', data)),
