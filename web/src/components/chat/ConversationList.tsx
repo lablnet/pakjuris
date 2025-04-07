@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../services/api';
-import { formattedDate } from '../../utils/helpers';
 import { ConfirmationDialog, EditDialog } from '../ui';
 import { useToast } from '../ui/ToastComp';
 import Dialog from '../ui/Dialog';
 import { useUserStore } from '../../stores/userStore';
 import useAuth from '../../hooks/auth/useAuth';
+import useConversations from '../../hooks/useConversations';
+import useActionMenu from '../../hooks/useActionMenu';
+import useDialogState from '../../hooks/useDialogState';
+import useClipboard from '../../hooks/useClipboard';
 
 interface Conversation {
   _id: string;
@@ -32,155 +34,116 @@ const ConversationList: React.FC<ConversationListProps> = ({
   onToggle,
   startNewChat
 }) => {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [archivedConversations, setArchivedConversations] = useState<Conversation[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
-  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
-  
   // User menu state
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { user } = useUserStore();
   const { logout } = useAuth();
   
-  // Dialog states
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  // Active conversation for dialogs
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+
+  // Custom hooks
+  const {
+    displayedConversations,
+    isLoading,
+    error,
+    showArchived,
+    handleSelectConversation,
+    handleNewChat,
+    handleArchiveConversation,
+    handleDeleteConversation,
+    handleUpdateConversation,
+    handleShareConversation,
+    toggleArchivedView
+  } = useConversations(currentConversationId);
+  
+  const {
+    actionMenuOpen,
+    toggleActionMenu,
+    closeActionMenu
+  } = useActionMenu();
+  
+  const {
+    deleteDialogOpen,
+    editDialogOpen,
+    shareDialogOpen,
+    openDeleteDialog,
+    closeDeleteDialog,
+    openEditDialog,
+    closeEditDialog,
+    openShareDialog,
+    closeShareDialog
+  } = useDialogState();
+  
+  const { copyToClipboard } = useClipboard();
   
   const toast = useToast();
   
+  // Close any open menus when the sidebar is closed
   useEffect(() => {
-    fetchConversations();
-    fetchArchivedConversations();
-  }, []);
-  
-  const fetchConversations = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await api.chat.conversations.list();
-      setConversations(response);
-    } catch (err) {
-      console.error('Failed to fetch conversations:', err);
-      setError('Failed to load conversations');
-    } finally {
-      setIsLoading(false);
+    if (!isOpen) {
+      closeActionMenu();
     }
+  }, [isOpen]);
+  
+  const onNewChat = () => {
+    handleNewChat(startNewChat, onToggle);
   };
   
-  const fetchArchivedConversations = async () => {
-    try {
-      const response = await api.chat.conversations.listArchived();
-      setArchivedConversations(response);
-    } catch (err) {
-      console.error('Failed to fetch archived conversations:', err);
-    }
-  };
-  
-  const handleNewChat = () => {
-    startNewChat();
-    // Close the sidebar on mobile after navigation
-    if (window.innerWidth < 768) {
-      onToggle();
-    }
-  };
-  
-  const handleSelectConversation = (id: string) => {
-    onSelect(id);
-    // Close sidebar on mobile after selection
-    if (window.innerWidth < 768) {
-      onToggle();
-    }
-  };
-  
-  const toggleActionMenu = (id: string) => {
-    setActionMenuOpen(prev => prev === id ? null : id);
+  const onSelectConversation = (id: string) => {
+    handleSelectConversation(id, onSelect, onToggle);
   };
   
   const handleDeleteClick = (conversation: Conversation) => {
     setSelectedConversation(conversation);
-    setDeleteDialogOpen(true);
-    setActionMenuOpen(null);
+    openDeleteDialog();
+    closeActionMenu();
   };
   
   const handleEditClick = (conversation: Conversation) => {
     setSelectedConversation(conversation);
-    setEditDialogOpen(true);
-    setActionMenuOpen(null);
+    openEditDialog();
+    closeActionMenu();
   };
   
-  const handleArchiveClick = async (conversation: Conversation) => {
-    try {
-      await api.chat.conversations.archive(conversation._id, !conversation.archived);
-      toast({ type: 'success', message: conversation.archived ? 'Conversation unarchived' : 'Conversation archived' });
-      fetchConversations();
-      fetchArchivedConversations();
-    } catch (err) {
-      console.error('Failed to archive conversation:', err);
-      toast({ type: 'error', message: 'Failed to archive conversation' });
-    }
-    setActionMenuOpen(null);
+  const handleArchiveClick = (conversation: Conversation) => {
+    handleArchiveConversation(conversation);
+    closeActionMenu();
   };
   
   const handleShareClick = async (conversation: Conversation) => {
-    try {
-      setSelectedConversation(conversation);
-      const response = await api.chat.conversations.share(conversation._id);
-      setShareUrl(response.shareUrl);
-      setShareDialogOpen(true);
-    } catch (err) {
-      console.error('Failed to share conversation:', err);
-      toast({ type: 'error', message: 'Failed to share conversation' });
+    setSelectedConversation(conversation);
+    const url = await handleShareConversation(conversation._id);
+    if (url) {
+      setShareUrl(url);
+      openShareDialog();
     }
-    setActionMenuOpen(null);
+    closeActionMenu();
   };
   
   const handleDeleteConfirm = async () => {
     if (!selectedConversation) return;
     
-    try {
-      await api.chat.conversations.delete(selectedConversation._id);
-      toast({ type: 'success', message: 'Conversation deleted' });
-      fetchConversations();
-      fetchArchivedConversations();
-      
-      // If the deleted conversation was selected, start a new chat
-      if (currentConversationId === selectedConversation._id) {
-        startNewChat();
-      }
-    } catch (err) {
-      console.error('Failed to delete conversation:', err);
-      toast({ type: 'error', message: 'Failed to delete conversation' });
-    }
+    // If the deleted conversation was selected, start a new chat
+    const onSuccess = currentConversationId === selectedConversation._id 
+      ? startNewChat
+      : undefined;
+    
+    await handleDeleteConversation(selectedConversation._id, onSuccess);
+    closeDeleteDialog();
   };
   
   const handleEditSave = async (newName: string) => {
     if (!selectedConversation) return;
-    
-    try {
-      await api.chat.conversations.update(selectedConversation._id, { name: newName });
-      toast({ type: 'success', message: 'Conversation name updated' });
-      fetchConversations();
-      fetchArchivedConversations();
-    } catch (err) {
-      console.error('Failed to update conversation name:', err);
-      toast({ type: 'error', message: 'Failed to update conversation name' });
-    }
+    await handleUpdateConversation(selectedConversation._id, { name: newName });
+    closeEditDialog();
   };
   
   const handleCopyShareLink = () => {
     if (shareUrl) {
-      navigator.clipboard.writeText(shareUrl);
-      toast({ type: 'success', message: 'Share link copied to clipboard' });
+      copyToClipboard(shareUrl);
     }
-  };
-  
-  const handleToggleArchivedView = () => {
-    setShowArchived(prev => !prev);
   };
   
   const handleLogout = async () => {
@@ -194,35 +157,11 @@ const ConversationList: React.FC<ConversationListProps> = ({
     }
   };
   
-  // Close any open dialogs when the sidebar is closed
-  useEffect(() => {
-    if (!isOpen) {
-      setActionMenuOpen(null);
-    }
-  }, [isOpen]);
-  
-  // Handle click outside to close action menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (actionMenuOpen && !(event.target as Element).closest('.conversation-action-menu')) {
-        setActionMenuOpen(null);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [actionMenuOpen]);
-  
-  // Display conversations based on whether we're showing archived or regular ones
-  const displayedConversations = showArchived ? archivedConversations : conversations;
-  
   const renderConversationItem = (conv: Conversation) => (
     <li key={conv._id}>
       <div className="relative group">
         <button
-          onClick={() => handleSelectConversation(conv._id)}
+          onClick={() => onSelectConversation(conv._id)}
           className={`w-full text-left p-3 hover:bg-gray-100 transition-colors flex items-center ${currentConversationId === conv._id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
         >
           <div className="flex-grow">
@@ -318,7 +257,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
       {/* New Chat Button */}
       <div className="p-3">
         <button 
-          onClick={handleNewChat}
+          onClick={onNewChat}
           className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -331,7 +270,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
       {/* Archived Toggle */}
       <div className="px-3 py-2 border-b">
         <button 
-          onClick={handleToggleArchivedView} 
+          onClick={toggleArchivedView} 
           className="flex items-center text-sm text-gray-600 hover:text-gray-900"
         >
           <span>{showArchived ? 'Show Active Conversations' : 'Show Archived'}</span>
@@ -455,7 +394,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
         isOpen={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
+        onClose={closeDeleteDialog}
         onConfirm={handleDeleteConfirm}
         title="Delete Conversation"
         message="Are you sure you want to delete this conversation? This action cannot be undone."
@@ -467,7 +406,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
       {/* Edit Dialog */}
       <EditDialog
         isOpen={editDialogOpen}
-        onClose={() => setEditDialogOpen(false)}
+        onClose={closeEditDialog}
         onSave={handleEditSave}
         title="Rename Conversation"
         label="Conversation Name"
@@ -478,11 +417,11 @@ const ConversationList: React.FC<ConversationListProps> = ({
       {/* Share Dialog */}
       <Dialog
         isOpen={shareDialogOpen}
-        onClose={() => setShareDialogOpen(false)}
+        onClose={closeShareDialog}
         title="Share Conversation"
         actions={
           <button
-            onClick={() => setShareDialogOpen(false)}
+            onClick={closeShareDialog}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Close
@@ -509,6 +448,16 @@ const ConversationList: React.FC<ConversationListProps> = ({
       </Dialog>
     </div>
   );
+};
+
+// Helper function to format date
+const formattedDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  }).format(date);
 };
 
 export default ConversationList; 
