@@ -58,9 +58,11 @@ async function billExistsInMongoDB(year, title) {
     const normalizedTitle = title.toLowerCase().replace(/[^\w\s]/g, '').trim();
     console.log(`Checking if bill exists in MongoDB: ${year} - ${normalizedTitle}`);
     
+    // Use the exact fields from the original document structure
     const existingBill = await billsCollection.findOne({
         year: year,
-        title: { $regex: new RegExp(`^${normalizedTitle.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') }
+        title: { $regex: new RegExp(`^${normalizedTitle.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') },
+        type: "bill"
     });
     
     return !!existingBill;
@@ -75,10 +77,11 @@ async function saveBillToMongoDB(billData) {
     try {
         const normalizedTitle = billData.title.toLowerCase().replace(/[^\w\s]/g, '').trim();
         
-        // Check if it already exists first
+        // Check if it already exists first using exact field names from original implementation
         const existingBill = await billsCollection.findOne({
             year: billData.year,
-            title: { $regex: new RegExp(`^${normalizedTitle.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') }
+            title: { $regex: new RegExp(`^${normalizedTitle.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') },
+            type: "bill"
         });
         
         if (existingBill) {
@@ -86,11 +89,20 @@ async function saveBillToMongoDB(billData) {
             return existingBill._id;
         }
         
-        // Set created/updated timestamps
-        billData.createdAt = new Date();
-        billData.updatedAt = new Date();
+        // Create document with exact structure from original implementation
+        const billDoc = {
+            fileName: billData.s3Key,
+            country: "Pakistan",
+            countryCode: "PK",
+            createdAt: new Date(),
+            createdBy: "lablnet",
+            title: billData.title,
+            type: "bill",
+            url: billData.url,
+            year: billData.year
+        };
         
-        const result = await billsCollection.insertOne(billData);
+        const result = await billsCollection.insertOne(billDoc);
         console.log(`Bill saved to MongoDB with ID: ${result.insertedId}`);
         return result.insertedId;
     } catch (error) {
@@ -298,6 +310,7 @@ const getBills = async(onlyCurrentYear = true) => {
                     const safeTitle = billInfo.title.replace(/[^a-z0-9\s-]/gi, '').replace(/[\s]+/g, '_');
                     const pdfFilename = `${year}_${safeTitle}.pdf`;
                     const pdfPath = path.join(DOWNLOAD_DIR, pdfFilename);
+                    // Ensure path structure is consistent with original format: bills/YYYY/YYYY_Title.pdf
                     const s3Key = `bills/${year}/${pdfFilename}`;
                     
                     // Check if bill exists in MongoDB
@@ -325,10 +338,8 @@ const getBills = async(onlyCurrentYear = true) => {
                             await saveBillToMongoDB({
                                 title: billInfo.title,
                                 year: year,
-                                pdfFilename: pdfFilename,
-                                sourceUrl: billInfo.href,
                                 s3Key: s3Key,
-                                s3Url: `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET}/${s3Key}`
+                                url: `https://d2n6e94p3v1d3j.cloudfront.net/${s3Key}`
                             });
                             
                             // Save state after processing
@@ -365,10 +376,8 @@ const getBills = async(onlyCurrentYear = true) => {
                                 await saveBillToMongoDB({
                                     title: billInfo.title,
                                     year: year,
-                                    pdfFilename: pdfFilename,
-                                    sourceUrl: billInfo.href,
                                     s3Key: s3Key,
-                                    s3Url: `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET}/${s3Key}`
+                                    url: `https://d2n6e94p3v1d3j.cloudfront.net/${s3Key}`
                                 });
                             } else {
                                 console.log(`  File already exists in S3, skipped upload: ${s3Key}`);
@@ -458,10 +467,8 @@ const getBills = async(onlyCurrentYear = true) => {
                                             await saveBillToMongoDB({
                                                 title: billInfo.title,
                                                 year: year,
-                                                pdfFilename: pdfFilename,
-                                                sourceUrl: billInfo.href,
                                                 s3Key: s3Key,
-                                                s3Url: `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET}/${s3Key}`
+                                                url: `https://d2n6e94p3v1d3j.cloudfront.net/${s3Key}`
                                             });
                                             
                                             // Update scraper state after successful processing
