@@ -18,6 +18,7 @@ import ResetPassword from './pages/Auth/ResetPassword';
 import ResetSuccess from './pages/Auth/ResetSuccess';
 import Profile from './pages/Dashboard/Profile';
 import NotFound from './pages/NotFound';
+import ComingSoon from './pages/ComingSoon';
 
 // Import components
 import ProtectedRoute from './components/layout/ProtectedRoute';
@@ -43,6 +44,9 @@ export default function App() {
               <Route path="/chat/:conversationId" element={<ChatPage />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
+            
+            {/* Coming Soon page */}
+            <Route path="/coming-soon" element={<ComingSoon />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
