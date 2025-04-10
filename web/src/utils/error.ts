@@ -8,10 +8,10 @@ interface FormattedError {
 }
 
 // Define the structure of the error response from the backend
-interface ErrorResponse {
-  errors?: FormattedError[];
-  message?: string;
-}
+// interface ErrorResponse {
+//   errors?: FormattedError[];
+//   message?: string;
+// }
 
 // Define the structure of parsed errors
 interface ParsedErrors {
