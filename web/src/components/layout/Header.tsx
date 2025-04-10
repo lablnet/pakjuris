@@ -53,7 +53,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           )}
           <Link to="/" className="text-white hover:text-blue-100 transition-colors">
             <h1 className="text-lg md:text-xl font-bold flex items-center">
-              <span className="text-2xl mr-2">🇵🇰</span> 
+              <img src="/favicon-96x96.png" alt="PakJuris" className="w-6 h-6 mr-2" />
               <span className="hidden sm:inline">PakJuris</span>
               <span className="sm:hidden">PakJuris</span>
             </h1>
