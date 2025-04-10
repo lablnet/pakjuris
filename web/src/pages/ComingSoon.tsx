@@ -15,9 +15,9 @@ const ComingSoon = () => {
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-8">
-              <h1 className="text-4xl font-bold mb-4">Coming Soon</h1>
+              <h1 className="text-4xl font-bold mb-4">Site Launch Coming Soon!</h1>
               <p className="text-xl opacity-90">
-                We're working on something exciting!
+                We're preparing to launch our exciting new platform!
               </p>
             </div>
 
@@ -36,9 +36,9 @@ const ComingSoon = () => {
                     <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#3B82F6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">Stay Tuned!</h2>
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Get Ready for Something Amazing!</h2>
                 <p className="text-gray-600 max-w-md mx-auto mb-8">
-                  We're currently developing this feature. Check back soon for updates!
+                  Our team is working hard to bring you an incredible experience. We're putting the finishing touches on our platform and will be launching very soon. Stay tuned for updates!
                 </p>
                 
                 <div className="flex flex-wrap gap-4 justify-center">
