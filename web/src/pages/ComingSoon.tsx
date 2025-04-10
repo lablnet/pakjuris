@@ -42,12 +42,14 @@ const ComingSoon = () => {
                 </p>
                 
                 <div className="flex flex-wrap gap-4 justify-center">
-                  <Link 
-                    to="/"
+                  <a 
+                    href="https://forms.gle/GB23frxyqVY5AGLq6"
+                    target="_blank" 
+                    rel="noopener noreferrer"
                     className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
                   >
-                    Go Home
-                  </Link>
+                    Join Waitlist
+                  </a>
                   <Link 
                     to="/about"
                     className="bg-white text-blue-600 border border-blue-200 px-6 py-3 rounded-lg font-medium hover:bg-blue-50 transition-colors"
