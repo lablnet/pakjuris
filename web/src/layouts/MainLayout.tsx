@@ -32,7 +32,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   
   useEffect(() => {
     // Check if current path is a chat page
-    const isChat = location.pathname === '/chat' || location.pathname.startsWith('/chat/');
+    // #TODO remove -new when launch.
+    const isChat = location.pathname === '/chat-new' || location.pathname.startsWith('/chat-new/');
     setIsChatPage(isChat);
     
     // Close sidebar when navigating away from chat pages
