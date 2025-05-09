@@ -1,6 +1,5 @@
 require('dotenv').config();
 const AWS = require('aws-sdk');
-const admin = require('firebase-admin');
 const path = require('path');
 const { MongoClient } = require('mongodb');
 
