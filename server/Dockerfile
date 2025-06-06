@@ -5,11 +5,12 @@ WORKDIR /app
 # Copy package.json and package-lock.json/pnpm-lock.yaml
 COPY package*.json pnpm-lock.yaml ./
 
-# Install pnpm
+# Install pnpm globally
 RUN npm install -g pnpm
 
 # Install dependencies
-RUN pnpm install
+# --frozen-lockfile is recommended for CI/CD to ensure deterministic builds
+RUN pnpm install --frozen-lockfile
 
 # Copy the rest of the application
 COPY . .

@@ -46,7 +46,7 @@ export const establishConnection = async(req: Request, res: Response): Promise<v
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': 'http://localhost:5173',
+            'Access-Control-Allow-Origin': 'http://localhost:5175',
             'Access-Control-Allow-Credentials': 'true'
         });
 
