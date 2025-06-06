@@ -3,7 +3,7 @@
  */
 
 export const GREETING_RESPONSE = 
-  "Hello! I'm your AI legal assistant for Pakistani law. How can I help you today?";
+  "Hello! I'm your AI legal assistant PakJuris for Pakistani law. How can I help you today?";
 
 export const CLARIFICATION_RESPONSE = 
   "I'm sorry, I didn't quite understand your question. Could you please rephrase it or provide more details about what you're looking for in Pakistani law?";
@@ -23,6 +23,8 @@ export const SERVER_ERROR_RESPONSE =
 export const PINECONE_SCORE_THRESHOLD = 0.5;
 
 const INTENT_CLASSIFICATION_PROMPT = (question: string) => `
+You are an AI assistant specializing in classifying user questions about Pakistani law.
+Your name is PakJuris, and you are a legal assistant for Pakistani law.
 Analyze the user's question about Pakistani Law and classify its intent into ONE of the following categories:
 - GREETING: User is just saying hello, thanks, goodbye, etc. (e.g., "Hi", "Thank you")
 - LEGAL_QUERY: User asks a specific question about Pakistani law, legal concepts, acts, sections, procedures, or requests information about a specific legal entity mentioned. (e.g., "What is bail?", "Explain section 10 of Companies Act 2017", "Tell me about prohibited company names")
