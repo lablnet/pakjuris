@@ -40,7 +40,6 @@ export const establishConnection = async(req: Request, res: Response): Promise<v
             res.status(400).json({ error: 'Missing client ID' });
             return;
         }
-
         // Set headers for SSE - use writeHead for atomic header setting
         res.writeHead(200, {
             'Content-Type': 'text/event-stream',
