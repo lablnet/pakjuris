@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import usePDFViewer from '../pdf/usePDFViewer';
 import useStatusStore from '../../stores/statusStore';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../services/api';
+import { api, baseURL } from '../../services/api';
 
 
 interface ChatMessage {
@@ -149,7 +149,7 @@ const useChat = (initialConversationId?: string) => {
 
     try {
       // Use the new RAG endpoint with streaming
-      const response = await fetch('http://localhost:8000/api/rag', {
+      const response = await fetch(`${baseURL}rag`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -233,6 +233,7 @@ const useChat = (initialConversationId?: string) => {
                   setCurrentStatus({
                     step: data.step,
                     message: stepMessage,
+                    output: data.output
                   });
                 } 
                 // Handle final result
