@@ -3,6 +3,8 @@
  */
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+
 import * as prompts from '../utils/promptTemplates';
 require('dotenv').config();
 
@@ -208,3 +210,12 @@ export const getEmbedding = async (text: string): Promise<number[]> => {
     throw error;
   }
 };
+
+export const llm = new ChatGoogleGenerativeAI({
+  apiKey: process.env.GEMINI_API_KEY, // set in your .env file
+  model: process.env.GEMINI_GENERATION_MODEL || 'gemini-1.5-pro', // Use gemini-1.5-pro instead of gemini-2.0-flash
+  temperature: 0.7,
+  maxOutputTokens: 1024,
+  streaming: true, // Disable streaming for now to avoid issues
+});
+
