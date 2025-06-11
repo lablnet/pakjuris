@@ -1,7 +1,9 @@
 import dotenv from 'dotenv';
 dotenv.config();
+import { setMaxListeners } from 'events';
+setMaxListeners(50);
 
-import express, { Application } from 'express';
+import express, { Application, Request, Response } from 'express';
 import mongoose, { ConnectOptions } from 'mongoose';
 import cors from 'cors';
 import authRoutes from './apps/user/routes';
@@ -9,22 +11,23 @@ import chatRoutes from './apps/chat/routes';
 
 import authMiddleware from './middleware/authMiddleware';
 import asyncHandler from './middleware/asyncHandler';
-
 import cookieParser from 'cookie-parser';
 import errorHandler from './middleware/errorHandler';
+
+import { createReactAgent } from '@langchain/langgraph/prebuilt';
+import { tools } from './agentRegistry';
+import { llm } from './services/openai';
 
 const app: Application = express();
 const port = process.env.PORT || 8000;
 
 // CORS Configuration
 const corsOptions = {
-  origin: [process.env.FRONTEND_URL || 'http://localhost:5173'],
+  origin: ['http://localhost:5173'],
   credentials: true,
 };
 
 app.use(cors(corsOptions));
-
-// Middleware
 app.use(express.json());
 app.use(cookieParser());
 
@@ -33,8 +36,70 @@ app.use('/api', authRoutes);
 
 // Routes below this middleware require authentication
 app.use(asyncHandler(authMiddleware));
-
 app.use('/api/chat', chatRoutes);
+
+// LangGraph RAG Route
+let compiled: any;
+(async () => {
+  try {
+    compiled = await createReactAgent({
+      llm,
+      tools,
+    });
+    console.log('✅ LangGraph agent compiled');
+  } catch (error) {
+    console.error("❌ Failed to compile LangGraph agent:", error);
+  }
+})();
+
+app.post('/api/rag', async (req: any, res: any) => {
+  const { question } = req.body;
+  if (!question) return res.status(400).json({ error: 'Missing question' });
+
+  if (!compiled) {
+    return res.status(503).json({ error: 'RAG agent is still compiling. Try again shortly.' });
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+
+  const send = (event: string, data: any) => {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+  const input = [{ role: 'user', content: question }];  
+  try {
+    const stream = await compiled.stream(
+      { messages: input },
+      { streamMode: 'updates' }
+    );
+
+    // Fix: Ensure stream is iterable
+    if (typeof stream[Symbol.asyncIterator] !== 'function') {
+      throw new Error('Stream is not iterable — possible LLM misconfig.');
+    }
+
+    for await (const update of stream) {
+      const [[step, output]] = Object.entries(update);
+      console.log("step, output", step, output);
+      send('step', { step, output });
+    }
+
+    const final = await compiled.invoke({
+      messages: input
+    });
+    console.log("final", final);
+    send('final', final);
+  } catch (e: any) {
+    console.error('RAG error:', e);
+    send('error', { message: e.message || 'Unexpected error' });
+  } finally {
+    res.end();
+  }
+});
 
 // Global Error Handler
 app.use(errorHandler);
@@ -48,11 +113,10 @@ if (!mongoUri) {
 mongoose
   .connect(mongoUri, {
     ssl: true,
-    tlsAllowInvalidCertificates: true
+    tlsAllowInvalidCertificates: true,
   } as ConnectOptions)
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('Could not connect to MongoDB', err));
-
 
 // Start Server
 app.listen(port, () => {
