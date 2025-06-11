@@ -17,6 +17,7 @@ import errorHandler from './middleware/errorHandler'
 import { createReactAgent } from '@langchain/langgraph/prebuilt'
 import { tools } from './agentRegistry'
 import { llm } from './services/openai'
+import { systemPrompt } from './utils/promptTemplates'
 
 const app: Application = express()
 const port = process.env.PORT || 8000
@@ -44,7 +45,8 @@ let compiled: any
   try {
     compiled = await createReactAgent({
       llm,
-      tools
+      tools,
+      messageModifier: systemPrompt
     })
     console.log('✅ LangGraph agent compiled')
   } catch (error) {
