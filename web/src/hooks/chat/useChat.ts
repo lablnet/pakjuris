@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
 import usePDFViewer from '../pdf/usePDFViewer';
 import useStatusStore from '../../stores/statusStore';
 import { useNavigate } from 'react-router-dom';
@@ -29,7 +28,7 @@ const useChat = (initialConversationId?: string) => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   
-  const { setCurrentStatus } = useStatusStore();
+  const { setCurrentStatus, currentStatus } = useStatusStore();
 
   const {
     currentPdfUrl,
@@ -39,7 +38,6 @@ const useChat = (initialConversationId?: string) => {
     currentHighlightPage,
     setCurrentHighlightPage,
     currentNumPages,
-    setCurrentNumPages,
     pdfError,
     setPdfError,
     onDocumentLoadSuccess,
@@ -175,6 +173,8 @@ const useChat = (initialConversationId?: string) => {
 
       const decoder = new TextDecoder();
       let finalResult: any = null;
+      let finalSources: any[] = [];
+      let lastToolOutput: any = null;
 
       try {
         while (true) {
@@ -185,21 +185,66 @@ const useChat = (initialConversationId?: string) => {
           const lines = chunk.split('\n');
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            if (line.startsWith('event: step')) {
+              // Skip the event line, the data will be on the next line
+              continue;
+            } else if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(6));
                 
+                // Handle step updates for status
                 if (data.step && data.output) {
-                  // Handle step updates for status
                   console.log('RAG Step:', data.step, data.output);
+                  
+                  // Extract readable step information
+                  let stepMessage = '';
+                  if (data.step === 'agent') {
+                    // Check if agent is using tools
+                    if (data.output.messages && data.output.messages[0] && data.output.messages[0].kwargs && data.output.messages[0].kwargs.tool_calls) {
+                      const toolCalls = data.output.messages[0].kwargs.tool_calls;
+                      if (toolCalls.length > 0) {
+                        const toolName = toolCalls[0].function?.name || 'tool';
+                        stepMessage = `Using ${toolName.replace('_', ' ')}...`;
+                      } else {
+                        stepMessage = 'Processing your question...';
+                      }
+                    } else {
+                      stepMessage = 'Generating response...';
+                    }
+                  } else if (data.step === 'tools') {
+                    // Extract tool output for potential source information
+                    if (data.output.messages && data.output.messages[0] && data.output.messages[0].kwargs && data.output.messages[0].kwargs.content) {
+                      lastToolOutput = data.output.messages[0].kwargs.content;
+                      // Try to parse as JSON to extract sources
+                      try {
+                        const parsedContent = JSON.parse(lastToolOutput);
+                        if (parsedContent.sources && Array.isArray(parsedContent.sources)) {
+                          finalSources = parsedContent.sources;
+                        }
+                      } catch (e) {
+                        // Not JSON, continue
+                      }
+                    }
+                    stepMessage = 'Searching legal documents...';
+                  } else {
+                    stepMessage = `${data.step}...`;
+                  }
+                  
                   setCurrentStatus({
                     step: data.step,
-                    message: data.output.toString(),
+                    message: stepMessage,
                   });
-                } else if (data.input && data.output) {
-                  // Handle final result
+                } 
+                // Handle final result
+                else if (data.final) {
                   console.log('RAG Final Result:', data);
-                  finalResult = data.output;
+                  finalResult = data.final;
+                }
+                // Handle final result with sources (alternative format)
+                else if (data.summary && data.sources) {
+                  console.log('RAG Final Result with sources:', data);
+                  finalResult = data.summary;
+                  finalSources = data.sources;
                 }
               } catch (e) {
                 console.log('Non-JSON line:', line);
@@ -220,11 +265,45 @@ const useChat = (initialConversationId?: string) => {
       // Process the final result
       if (finalResult) {
         console.log("RAG Final Response:", finalResult);
+        console.log("RAG Sources:", finalSources);
 
-        // Update the conversation ID if this is a new conversation
-        // Note: The RAG endpoint might need to be updated to return conversationId
-        // For now, keeping the existing conversation logic
-        
+        // Extract source information if available
+        let pdfUrl = null;
+        let originalText = null;
+        let pageNumber = null;
+        let title = null;
+        let year = null;
+
+        // Try to parse sources from the final result if it contains source information
+        if (typeof finalResult === 'string') {
+          // Look for URL pattern in the final result
+          const urlMatch = finalResult.match(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/);
+          if (urlMatch) {
+            pdfUrl = urlMatch[2];
+            title = urlMatch[1];
+            // Extract page number from URL or result text
+            const pageMatch = finalResult.match(/Page (\d+)/);
+            if (pageMatch) {
+              pageNumber = parseInt(pageMatch[1]);
+            }
+          }
+        }
+
+        // If we have sources array, use the first source
+        if (finalSources && finalSources.length > 0) {
+          const firstSource = finalSources[0];
+          pdfUrl = firstSource.url;
+          // Extract a reasonable excerpt for highlighting
+          if (firstSource.text) {
+            const fullText = firstSource.text;
+            // Use a reasonable excerpt size (around 300 characters)
+            originalText = fullText.length > 300 ? fullText.substring(0, 300) + '...' : fullText;
+          }
+          pageNumber = firstSource.page || firstSource.pageNumber;
+          title = firstSource.title;
+          year = firstSource.year;
+        }
+
         // Clear the loading status
         setCurrentStatus(null);
 
@@ -232,16 +311,26 @@ const useChat = (initialConversationId?: string) => {
         setChatHistory((prev) => {
           const updatedHistory = [...prev];
           updatedHistory[updatedHistory.length - 1].answer = {
-            intent: 'LEGAL_QUERY', // Default to LEGAL_QUERY for RAG responses
+            intent: 'LEGAL_QUERY',
             summary: finalResult,
-            // Add other fields as they become available from the RAG endpoint
+            title: title || undefined,
+            year: year || undefined,
+            pageNumber: pageNumber || undefined,
+            originalText: originalText || undefined,
+            pdfUrl: pdfUrl || undefined,
+            matchScore: finalSources.length > 0 ? finalSources[0].score : undefined
           };
           console.log("Updated message history with RAG answer:", updatedHistory[updatedHistory.length - 1]);
           return updatedHistory;
         });
 
-        // Note: PDF viewer updates would need to be implemented based on RAG response structure
-        // The RAG endpoint might need to be updated to return PDF metadata
+        // Update PDF viewer if we have PDF information
+        if (pdfUrl && originalText && pageNumber) {
+          console.log("Setting PDF viewer from RAG response:", { pdfUrl, originalText, pageNumber });
+          setCurrentPdfUrl(pdfUrl);
+          setCurrentHighlightText(originalText);
+          setCurrentHighlightPage(pageNumber);
+        }
       } else {
         throw new Error('No final result received from RAG endpoint');
       }
@@ -298,7 +387,8 @@ const useChat = (initialConversationId?: string) => {
     chatEndRef,
     conversationId,
     handleSelectConversation,
-    startNewChat
+    startNewChat,
+    currentStatus
   };
 };
 
