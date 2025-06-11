@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import usePDFViewer from '../pdf/usePDFViewer';
 import useStatusStore from '../../stores/statusStore';
-import useSSE from './useSSE';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 
@@ -30,8 +29,7 @@ const useChat = (initialConversationId?: string) => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   
-  const { clientId, clearStatusUpdates } = useSSE();
-  const { currentStatus } = useStatusStore();
+  const { setCurrentStatus } = useStatusStore();
 
   const {
     currentPdfUrl,
@@ -132,15 +130,13 @@ const useChat = (initialConversationId?: string) => {
     scrollToBottom();
     
     // Also scroll when loading state changes or status updates
-  }, [chatHistory, isLoading, currentStatus]);
+  }, [chatHistory, isLoading]);
 
   const handleAsk = async () => {
     if (!question.trim() || isLoading) return;
     
-    // Clear status updates using the function from useSSE
-    if (typeof clearStatusUpdates === 'function') {
-        clearStatusUpdates();
-    }
+    // Clear status updates
+    setCurrentStatus(null);
 
     setIsLoading(true);
     setPdfError(null); // Clear previous PDF errors
@@ -154,58 +150,112 @@ const useChat = (initialConversationId?: string) => {
     setChatHistory((prev) => [...prev, newUserMessage as ChatMessage]);
 
     try {
-      const res = await api.chat.query({
-        question: userQuestion,
-        clientId: clientId, // Send clientId to server
-        conversationId: conversationId // Send conversationId if it exists
+      // Use the new RAG endpoint with streaming
+      const response = await fetch('http://localhost:8000/api/rag', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`, // Add auth if needed
+        },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          question: userQuestion,
+          conversationId: conversationId 
+        }),
       });
-      const responseData = res;
 
-      // Debug the response data to see the originalText value
-      console.log("API Response Data:", responseData);
-      console.log("Original Text from API:", responseData.originalText);
-
-      // Update the conversation ID if this is a new conversation
-      if (responseData.conversationId && !conversationId) {
-        setConversationId(responseData.conversationId);
-        // Update URL to include conversation ID
-        navigate(`/chat/${responseData.conversationId}`, { replace: true });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Update the last message in history with the actual answer
-      setChatHistory((prev) => {
-        const updatedHistory = [...prev];
-        updatedHistory[updatedHistory.length - 1].answer = responseData;
-        console.log("Updated message history with answer:", updatedHistory[updatedHistory.length - 1]);
-        return updatedHistory;
-      });
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body reader available');
+      }
 
-      // Update PDF viewer state ONLY if it's a legal query with a valid URL
-      if (responseData.intent === 'LEGAL_QUERY' && responseData.pdfUrl) {
-        console.log("Setting PDF details:", responseData);
-        setCurrentPdfUrl(responseData.pdfUrl);
-        
-        // Ensure we have the originalText before setting it
-        if (responseData.originalText) {
-          console.log("Setting highlight text to:", responseData.originalText);
-          setCurrentHighlightText(responseData.originalText);
-        } else {
-          console.warn("No originalText found in response:", responseData);
-          setCurrentHighlightText(null);
+      const decoder = new TextDecoder();
+      let finalResult: any = null;
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                
+                if (data.step && data.output) {
+                  // Handle step updates for status
+                  console.log('RAG Step:', data.step, data.output);
+                  setCurrentStatus({
+                    step: data.step,
+                    message: data.output.toString(),
+                  });
+                } else if (data.input && data.output) {
+                  // Handle final result
+                  console.log('RAG Final Result:', data);
+                  finalResult = data.output;
+                }
+              } catch (e) {
+                console.log('Non-JSON line:', line);
+              }
+            } else if (line.startsWith('event: final')) {
+              // Final event indicator
+              console.log('Received final event');
+            } else if (line.startsWith('event: error')) {
+              // Error event
+              console.error('RAG Error event received');
+            }
+          }
         }
+      } finally {
+        reader.releaseLock();
+      }
+
+      // Process the final result
+      if (finalResult) {
+        console.log("RAG Final Response:", finalResult);
+
+        // Update the conversation ID if this is a new conversation
+        // Note: The RAG endpoint might need to be updated to return conversationId
+        // For now, keeping the existing conversation logic
         
-        setCurrentHighlightPage(responseData.pageNumber || 1);
-        setCurrentNumPages(null); // Reset numPages until PDF loads
+        // Clear the loading status
+        setCurrentStatus(null);
+
+        // Update the last message in history with the actual answer
+        setChatHistory((prev) => {
+          const updatedHistory = [...prev];
+          updatedHistory[updatedHistory.length - 1].answer = {
+            intent: 'LEGAL_QUERY', // Default to LEGAL_QUERY for RAG responses
+            summary: finalResult,
+            // Add other fields as they become available from the RAG endpoint
+          };
+          console.log("Updated message history with RAG answer:", updatedHistory[updatedHistory.length - 1]);
+          return updatedHistory;
+        });
+
+        // Note: PDF viewer updates would need to be implemented based on RAG response structure
+        // The RAG endpoint might need to be updated to return PDF metadata
+      } else {
+        throw new Error('No final result received from RAG endpoint');
       }
 
     } catch (error) {
-      console.error('Error making request:', error);
+      console.error('Error making RAG request:', error);
       let errorMessage = 'Failed to get response. Please try again.';
-      if (axios.isAxiosError(error) && error.response) {
-        errorMessage = `Error: ${error.response.status} - ${error.response.data?.message || 'Server error'}`;
-      } else if (error instanceof Error) {
+      if (error instanceof Error) {
         errorMessage = `Error: ${error.message}`;
       }
+      
+      // Clear status and show error
+      setCurrentStatus(null);
+      
       // Update the last message to show the error
       setChatHistory((prev) => {
         const updatedHistory = [...prev];
@@ -215,11 +265,6 @@ const useChat = (initialConversationId?: string) => {
         }
         return updatedHistory;
       });
-      // If there's an error, clear any potentially lingering status
-      // Check if clearStatusUpdates is available from useSSE
-      if (typeof clearStatusUpdates === 'function') { 
-        clearStatusUpdates();
-      }
     } finally {
       // Ensure loading is set to false after the try/catch block completes
       setIsLoading(false);
@@ -242,7 +287,6 @@ const useChat = (initialConversationId?: string) => {
     setQuestion,
     chatHistory,
     isLoading,
-    currentStatus,
     currentPdfUrl,
     currentHighlightText,
     currentHighlightPage,
