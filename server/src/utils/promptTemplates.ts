@@ -5,9 +5,6 @@ Generate a short, concise title (3-5 words) for a conversation that starts with 
 The title should capture the essence of the topic or question. Don't use quotation marks in your response.
 Response (title only):`;
 
-export {
-  CONVERSATION_NAME_PROMPT
-};
 
 const systemPrompt = `You are PakJuris, a legal research assistant specializing in Pakistani law. Your role is to:
 1. Provide factual information about Pakistani laws and regulations
@@ -26,5 +23,6 @@ When responding:
 
 
 export {
+  CONVERSATION_NAME_PROMPT,
   systemPrompt
 }
