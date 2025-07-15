@@ -6,27 +6,72 @@ interface StatusDisplayProps {
     step: string;
     message: string;
     intent?: string;
+    output?: any;
   };
   isConnected?: boolean;
   connectionError?: string | null;
   onReconnect?: () => void;
 }
 
-const steps = {
-  start: { icon: '🚀', label: 'Starting' },
-  intent: { icon: '🧠', label: 'Analyzing Intent' },
-  search: { icon: '🔍', label: 'Searching' },
-  embedding: { icon: '📊', label: 'Processing' },
-  filtering: { icon: '🔎', label: 'Filtering' },
-  ranking: { icon: '📈', label: 'Ranking' },
-  summary: { icon: '✍️', label: 'Generating' },
-  finalizing: { icon: '✨', label: 'Finalizing' },
-  complete: { icon: '✅', label: 'Complete' }
+// Define tool names as a type
+type ToolName = 'generate_search_terms' | 'retrieve_documents' | 'agent_thinking' | 'agent_final';
+
+// Map actual tool names to user-friendly display info
+const toolInfo: Record<ToolName, { icon: string; label: string; description: string }> = {
+  generate_search_terms: { icon: '🧠', label: 'Generating Search Terms', description: 'Creating optimized search queries...' },
+  retrieve_documents: { icon: '🔍', label: 'Searching Documents', description: 'Finding relevant legal documents...' },
+  agent_thinking: { icon: '🤖', label: 'AI Processing', description: 'Analyzing and preparing response...' },
+  agent_final: { icon: '✅', label: 'Complete', description: 'Response ready!' }
+};
+
+// Helper function to determine current status based on step and output
+const getStatusInfo = (step: string, output: any) => {
+  if (step === 'agent') {
+    // Check if agent is making tool calls
+    if (output?.messages?.[0]?.tool_calls?.length > 0) {
+      const toolCall = output.messages[0].tool_calls[0];
+      const toolName = toolCall.name as string;
+      
+      if (toolName in toolInfo) {
+        return {
+          ...toolInfo[toolName as ToolName],
+          currentTool: toolName
+        };
+      }
+    }
+    
+    // Check if agent has final response (no tool calls)
+    if (output?.messages?.[0]?.content && !output?.messages?.[0]?.tool_calls?.length) {
+      return toolInfo.agent_final;
+    }
+    
+    // Default agent thinking
+    return toolInfo.agent_thinking;
+  }
+  
+  if (step === 'tools') {
+    return {
+      icon: '⚙️',
+      label: 'Processing Tools',
+      description: 'Tools are executing...'
+    };
+  }
+  
+  // Fallback
+  return {
+    icon: '🔄',
+    label: 'Processing',
+    description: 'Working on your request...'
+  };
 };
 
 const StatusDisplay: React.FC<StatusDisplayProps> = ({ status, isConnected, connectionError, onReconnect }) => {
-  const currentStepIndex = Object.keys(steps).indexOf(status.step);
-  const totalSteps = Object.keys(steps).length;
+  const statusInfo = getStatusInfo(status.step, status.output);
+  
+  // Don't show status if it's the final response
+  if (statusInfo.label === 'Complete') {
+    return null;
+  }
 
   return (
     <motion.div
@@ -51,43 +96,50 @@ const StatusDisplay: React.FC<StatusDisplayProps> = ({ status, isConnected, conn
           </div>
         )}
 
-        {/* Progress Steps */}
-        <div className="flex justify-between items-center">
-          {Object.entries(steps).map(([step, { icon, label }], index) => (
-            <motion.div
-              key={step}
-              className="flex flex-col items-center"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ 
-                scale: index <= currentStepIndex ? 1 : 0.8,
-                opacity: index <= currentStepIndex ? 1 : 0.5
-              }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className={`
-                w-8 h-8 rounded-full flex items-center justify-center text-lg
-                ${index <= currentStepIndex 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 text-gray-500'}
-              `}>
-                {icon}
-              </div>
-              <span className="text-xs mt-1 text-gray-600">{label}</span>
-            </motion.div>
-          ))}
+        {/* Current Status */}
+        <div className="flex items-center space-x-4">
+          {/* Animated Icon */}
+          <motion.div
+            className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center text-xl"
+            animate={{ 
+              scale: [1, 1.1, 1],
+              rotate: statusInfo.label === 'AI Processing' ? 360 : 0
+            }}
+            transition={{ 
+              scale: { duration: 2, repeat: Infinity },
+              rotate: { duration: 2, repeat: Infinity, ease: "linear" }
+            }}
+          >
+            {statusInfo.icon}
+          </motion.div>
+
+          {/* Status Text */}
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-800">
+              {statusInfo.label}
+            </h3>
+            <p className="text-sm text-gray-600">
+              {statusInfo.description}
+            </p>
+          </div>
         </div>
 
         {/* Progress Bar */}
         <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
           <motion.div
             className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-indigo-500"
-            initial={{ width: 0 }}
-            animate={{ width: `${(currentStepIndex + 1) / totalSteps * 100}%` }}
-            transition={{ duration: 0.5 }}
+            initial={{ width: "0%" }}
+            animate={{ width: "100%" }}
+            transition={{ 
+              duration: 3,
+              repeat: Infinity,
+              repeatType: "reverse",
+              ease: "easeInOut"
+            }}
           />
         </div>
 
-        {/* Status Message */}
+        {/* Additional Info */}
         <AnimatePresence mode="wait">
           <motion.div
             key={status.message}
@@ -96,8 +148,8 @@ const StatusDisplay: React.FC<StatusDisplayProps> = ({ status, isConnected, conn
             exit={{ opacity: 0, y: -10 }}
             className="text-center"
           >
-            <p className="text-sm text-gray-700 font-medium">
-              {status.message}
+            <p className="text-xs text-gray-500">
+              {status.message || 'Processing your legal query...'}
             </p>
           </motion.div>
         </AnimatePresence>
@@ -106,4 +158,4 @@ const StatusDisplay: React.FC<StatusDisplayProps> = ({ status, isConnected, conn
   );
 };
 
-export default StatusDisplay; 
+export default StatusDisplay;

@@ -1,10 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
 import usePDFViewer from '../pdf/usePDFViewer';
 import useStatusStore from '../../stores/statusStore';
-import useSSE from './useSSE';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../services/api';
+import { api, baseURL } from '../../services/api';
 
 
 interface ChatMessage {
@@ -30,8 +28,7 @@ const useChat = (initialConversationId?: string) => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   
-  const { clientId, clearStatusUpdates } = useSSE();
-  const { currentStatus } = useStatusStore();
+  const { setCurrentStatus, currentStatus } = useStatusStore();
 
   const {
     currentPdfUrl,
@@ -41,7 +38,6 @@ const useChat = (initialConversationId?: string) => {
     currentHighlightPage,
     setCurrentHighlightPage,
     currentNumPages,
-    setCurrentNumPages,
     pdfError,
     setPdfError,
     onDocumentLoadSuccess,
@@ -132,15 +128,13 @@ const useChat = (initialConversationId?: string) => {
     scrollToBottom();
     
     // Also scroll when loading state changes or status updates
-  }, [chatHistory, isLoading, currentStatus]);
+  }, [chatHistory, isLoading]);
 
   const handleAsk = async () => {
     if (!question.trim() || isLoading) return;
     
-    // Clear status updates using the function from useSSE
-    if (typeof clearStatusUpdates === 'function') {
-        clearStatusUpdates();
-    }
+    // Clear status updates
+    setCurrentStatus(null);
 
     setIsLoading(true);
     setPdfError(null); // Clear previous PDF errors
@@ -154,58 +148,204 @@ const useChat = (initialConversationId?: string) => {
     setChatHistory((prev) => [...prev, newUserMessage as ChatMessage]);
 
     try {
-      const res = await api.chat.query({
-        question: userQuestion,
-        clientId: clientId, // Send clientId to server
-        conversationId: conversationId // Send conversationId if it exists
+      // Use the new RAG endpoint with streaming
+      const response = await fetch(`${baseURL}rag`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          question: userQuestion,
+          conversationId: conversationId 
+        }),
       });
-      const responseData = res;
 
-      // Debug the response data to see the originalText value
-      console.log("API Response Data:", responseData);
-      console.log("Original Text from API:", responseData.originalText);
-
-      // Update the conversation ID if this is a new conversation
-      if (responseData.conversationId && !conversationId) {
-        setConversationId(responseData.conversationId);
-        // Update URL to include conversation ID
-        navigate(`/chat/${responseData.conversationId}`, { replace: true });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Update the last message in history with the actual answer
-      setChatHistory((prev) => {
-        const updatedHistory = [...prev];
-        updatedHistory[updatedHistory.length - 1].answer = responseData;
-        console.log("Updated message history with answer:", updatedHistory[updatedHistory.length - 1]);
-        return updatedHistory;
-      });
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body reader available');
+      }
 
-      // Update PDF viewer state ONLY if it's a legal query with a valid URL
-      if (responseData.intent === 'LEGAL_QUERY' && responseData.pdfUrl) {
-        console.log("Setting PDF details:", responseData);
-        setCurrentPdfUrl(responseData.pdfUrl);
-        
-        // Ensure we have the originalText before setting it
-        if (responseData.originalText) {
-          console.log("Setting highlight text to:", responseData.originalText);
-          setCurrentHighlightText(responseData.originalText);
-        } else {
-          console.warn("No originalText found in response:", responseData);
-          setCurrentHighlightText(null);
+      const decoder = new TextDecoder();
+      let finalResult: any = null;
+      let finalSources: any[] = [];
+      let lastToolOutput: any = null;
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('event: step')) {
+              // Skip the event line, the data will be on the next line
+              continue;
+            } else if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                
+                // Handle step updates for status
+                if (data.step && data.output) {
+                  console.log('RAG Step:', data.step, data.output);
+                  
+                  // Extract readable step information
+                  let stepMessage = '';
+                  if (data.step === 'agent') {
+                    // Check if agent is using tools
+                    if (data.output.messages && data.output.messages[0] && data.output.messages[0].kwargs && data.output.messages[0].kwargs.tool_calls) {
+                      const toolCalls = data.output.messages[0].kwargs.tool_calls;
+                      if (toolCalls.length > 0) {
+                        const toolName = toolCalls[0].function?.name || 'tool';
+                        stepMessage = `Using ${toolName.replace('_', ' ')}...`;
+                      } else {
+                        stepMessage = 'Processing your question...';
+                      }
+                    } else {
+                      stepMessage = 'Generating response...';
+                    }
+                  } else if (data.step === 'tools') {
+                    // Extract tool output for potential source information
+                    if (data.output.messages && data.output.messages[0] && data.output.messages[0].kwargs && data.output.messages[0].kwargs.content) {
+                      lastToolOutput = data.output.messages[0].kwargs.content;
+                      // Try to parse as JSON to extract sources
+                      try {
+                        const parsedContent = JSON.parse(lastToolOutput);
+                        if (parsedContent.sources && Array.isArray(parsedContent.sources)) {
+                          finalSources = parsedContent.sources;
+                        }
+                      } catch (e) {
+                        // Not JSON, continue
+                      }
+                    }
+                    stepMessage = 'Searching legal documents...';
+                  } else {
+                    stepMessage = `${data.step}...`;
+                  }
+                  
+                  setCurrentStatus({
+                    step: data.step,
+                    message: stepMessage,
+                    output: data.output
+                  });
+                } 
+                // Handle final result
+                else if (data.final) {
+                  console.log('RAG Final Result:', data);
+                  finalResult = data.final;
+                }
+                // Handle final result with sources (alternative format)
+                else if (data.summary && data.sources) {
+                  console.log('RAG Final Result with sources:', data);
+                  finalResult = data.summary;
+                  finalSources = data.sources;
+                }
+              } catch (e) {
+                console.log('Non-JSON line:', line);
+              }
+            } else if (line.startsWith('event: final')) {
+              // Final event indicator
+              console.log('Received final event');
+            } else if (line.startsWith('event: error')) {
+              // Error event
+              console.error('RAG Error event received');
+            }
+          }
         }
-        
-        setCurrentHighlightPage(responseData.pageNumber || 1);
-        setCurrentNumPages(null); // Reset numPages until PDF loads
+      } finally {
+        reader.releaseLock();
+      }
+
+      // Process the final result
+      if (finalResult) {
+        console.log("RAG Final Response:", finalResult);
+        console.log("RAG Sources:", finalSources);
+
+        // Extract source information if available
+        let pdfUrl = null;
+        let originalText = null;
+        let pageNumber = null;
+        let title = null;
+        let year = null;
+
+        // Try to parse sources from the final result if it contains source information
+        if (typeof finalResult === 'string') {
+          // Look for URL pattern in the final result
+          const urlMatch = finalResult.match(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/);
+          if (urlMatch) {
+            pdfUrl = urlMatch[2];
+            title = urlMatch[1];
+            // Extract page number from URL or result text
+            const pageMatch = finalResult.match(/Page (\d+)/);
+            if (pageMatch) {
+              pageNumber = parseInt(pageMatch[1]);
+            }
+          }
+        }
+
+        // If we have sources array, use the first source
+        if (finalSources && finalSources.length > 0) {
+          const firstSource = finalSources[0];
+          pdfUrl = firstSource.url;
+          // Extract a reasonable excerpt for highlighting
+          if (firstSource.text) {
+            const fullText = firstSource.text;
+            // Use a reasonable excerpt size (around 300 characters)
+            originalText = fullText.length > 300 ? fullText.substring(0, 300) + '...' : fullText;
+          }
+          pageNumber = firstSource.page || firstSource.pageNumber;
+          title = firstSource.title;
+          year = firstSource.year;
+        }
+
+        // Clear the loading status
+        setCurrentStatus(null);
+
+        // Update the last message in history with the actual answer
+        setChatHistory((prev) => {
+          const updatedHistory = [...prev];
+          updatedHistory[updatedHistory.length - 1].answer = {
+            intent: 'LEGAL_QUERY',
+            summary: finalResult,
+            title: title || undefined,
+            year: year || undefined,
+            pageNumber: pageNumber || undefined,
+            originalText: originalText || undefined,
+            pdfUrl: pdfUrl || undefined,
+            matchScore: finalSources.length > 0 ? finalSources[0].score : undefined
+          };
+          console.log("Updated message history with RAG answer:", updatedHistory[updatedHistory.length - 1]);
+          return updatedHistory;
+        });
+
+        // Update PDF viewer if we have PDF information
+        if (pdfUrl && originalText && pageNumber) {
+          console.log("Setting PDF viewer from RAG response:", { pdfUrl, originalText, pageNumber });
+          setCurrentPdfUrl(pdfUrl);
+          setCurrentHighlightText(originalText);
+          setCurrentHighlightPage(pageNumber);
+        }
+      } else {
+        throw new Error('No final result received from RAG endpoint');
       }
 
     } catch (error) {
-      console.error('Error making request:', error);
+      console.error('Error making RAG request:', error);
       let errorMessage = 'Failed to get response. Please try again.';
-      if (axios.isAxiosError(error) && error.response) {
-        errorMessage = `Error: ${error.response.status} - ${error.response.data?.message || 'Server error'}`;
-      } else if (error instanceof Error) {
+      if (error instanceof Error) {
         errorMessage = `Error: ${error.message}`;
       }
+      
+      // Clear status and show error
+      setCurrentStatus(null);
+      
       // Update the last message to show the error
       setChatHistory((prev) => {
         const updatedHistory = [...prev];
@@ -215,11 +355,6 @@ const useChat = (initialConversationId?: string) => {
         }
         return updatedHistory;
       });
-      // If there's an error, clear any potentially lingering status
-      // Check if clearStatusUpdates is available from useSSE
-      if (typeof clearStatusUpdates === 'function') { 
-        clearStatusUpdates();
-      }
     } finally {
       // Ensure loading is set to false after the try/catch block completes
       setIsLoading(false);
@@ -242,7 +377,6 @@ const useChat = (initialConversationId?: string) => {
     setQuestion,
     chatHistory,
     isLoading,
-    currentStatus,
     currentPdfUrl,
     currentHighlightText,
     currentHighlightPage,
@@ -254,7 +388,8 @@ const useChat = (initialConversationId?: string) => {
     chatEndRef,
     conversationId,
     handleSelectConversation,
-    startNewChat
+    startNewChat,
+    currentStatus
   };
 };
 
