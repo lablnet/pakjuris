@@ -27,6 +27,6 @@ An agentic RAG solution for Pakistan’s legal corpus, composed of:
 PakJuris/
 ├── web/                  # Frontend web application (React/TypeScript)
 ├── server/               # Backend API server (Node.js/TypeScript)
-├── scraper/              # Document scraping and processing │
+├── scraper/              # Document scraping and processing
 └── downloads/            # Downloaded document storage
 ```
