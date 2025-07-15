@@ -10,3 +10,10 @@ This one-page site is designed to:
 3. Encourage contributions by highlighting the simple 3-step path: **Fork → Star → Contribute**.
 
 Built with **TailwindCSS** and **AOS (Animate On Scroll)**, the page loads instantly and can be hosted on any static server – GitHub Pages, Netlify, Vercel, or an S3 bucket.
+
+
+## Deploy
+If you're using cloudflare, you can deploy this page with a single click:
+```sh
+wrangler pages deploy . --project-name=pakjuris
+```
