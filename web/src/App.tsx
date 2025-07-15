@@ -10,14 +10,13 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pd
 
 // Import pages
 import Home from './pages/Site/Home';
-// import ChatPage from './pages/Dashboard/ChatPage';
+import ChatPage from './pages/Dashboard/ChatPage';
 import About from './pages/Site/About';
-// import Login from './pages/Auth/Login';
-// import Register from './pages/Auth/Register';
-// import ResetPassword from './pages/Auth/ResetPassword';
-// import ResetSuccess from './pages/Auth/ResetSuccess';
-// import Profile from './pages/Dashboard/Profile';
-// import NotFound from './pages/NotFound';
+import Login from './pages/Auth/Login';
+import Register from './pages/Auth/Register';
+import ResetPassword from './pages/Auth/ResetPassword';
+import ResetSuccess from './pages/Auth/ResetSuccess';
+import Profile from './pages/Dashboard/Profile';
 import ComingSoon from './pages/ComingSoon';
 import NotFound from './pages/NotFound';
 
@@ -34,16 +33,16 @@ export default function App() {
             <Route path="/about" element={<About />} />
             
             {/* Auth routes - temporarily disabled, showing Coming Soon page */}
-            <Route path="/login" element={<ComingSoon />} />
-            <Route path="/register" element={<ComingSoon />} />
-            <Route path="/reset-password" element={<ComingSoon />} />
-            <Route path="/reset-password/success" element={<ComingSoon />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/reset-password/success" element={<ResetSuccess />} />
             
             {/* Protected routes - temporarily disabled, showing Coming Soon page */}
-            <Route path="/chat" element={<ComingSoon />} />
-            <Route path="/chat/:conversationId" element={<ComingSoon />} />
-            <Route path="/profile" element={<ComingSoon />} />
-            
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/chat/:conversationId" element={<ChatPage />} />
+            <Route path="/profile" element={<Profile />} />
+
             {/* Coming Soon page */}
             <Route path="/coming-soon" element={<ComingSoon />} />
             

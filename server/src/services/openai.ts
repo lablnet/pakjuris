@@ -2,6 +2,7 @@
  * OpenAI service for embeddings and other AI operations
  */
 import OpenAI from 'openai';
+import { ChatOpenAI } from '@langchain/openai';
 
 const AZURE_OPENAI_ENDPOINT = process.env.AZURE_OPENAI_ENDPOINT;
 const AZURE_OPENAI_API_KEY = process.env.AZURE_OPENAI_API_KEY;
@@ -46,3 +47,10 @@ export const getEmbedding = async (text: string): Promise<number[]> => {
     throw error;
   }
 };
+
+export const llm = new ChatOpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+  model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+  temperature: 0.7,
+  streaming: true,
+});

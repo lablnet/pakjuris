@@ -187,7 +187,8 @@ export default function ChatPage() {
                   <StatusDisplay 
                     status={{
                       step: currentStatus.step, // Use guaranteed step
-                      message: currentStatus.message || '...' // Fallback message
+                      message: currentStatus.message || '...', // Fallback message
+                      output: currentStatus.output
                     }}
                     isConnected={true}
                     connectionError={null}

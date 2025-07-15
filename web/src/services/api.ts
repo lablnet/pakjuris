@@ -7,8 +7,10 @@ import axios, {
 import { useUserStore } from '../stores/userStore';
 import { MeType } from '../types/api';
 
+const baseURL = import.meta.env.VITE_API_SERVER || "https://backend.pakjuris.pk/api/";
+
 // Set Axios defaults
-axios.defaults.baseURL = import.meta.env.VITE_API_SERVER || "https://backend.filter.fm/api/";
+axios.defaults.baseURL = baseURL;
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 axios.defaults.headers.common['Accept'] = 'application/json';
@@ -154,5 +156,5 @@ const api = {
     }
   }
 };
-export { api, axiosInstance };
+export { api, axiosInstance, baseURL };
 export default api;

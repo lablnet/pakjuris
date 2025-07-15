@@ -4,6 +4,7 @@ interface StatusUpdate {
   step: string;
   message: string;
   intent?: string;
+  output?: any;
 }
 
 // Simplified State: Only holds the current status
