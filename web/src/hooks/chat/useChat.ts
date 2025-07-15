@@ -149,7 +149,7 @@ const useChat = (initialConversationId?: string) => {
 
     try {
       // Use the new RAG endpoint with streaming
-      const response = await fetch(`${baseURL}rag`, {
+      const response = await fetch(`${baseURL}chat/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
