@@ -8,6 +8,8 @@ import mongoose, { ConnectOptions } from 'mongoose'
 import cors from 'cors'
 import authRoutes from './apps/user/routes'
 import chatRoutes from './apps/chat/routes'
+import swaggerUi from 'swagger-ui-express'
+import swaggerDocument from './swagger'
 
 import authMiddleware from './middleware/authMiddleware'
 import asyncHandler from './middleware/asyncHandler'
@@ -29,6 +31,7 @@ app.use(cookieParser())
 
 // Public Routes
 app.use('/api', authRoutes)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
 // Routes below this middleware require authentication
 app.use(asyncHandler(authMiddleware))
