@@ -153,7 +153,7 @@ const useChat = (initialConversationId?: string) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`, // Add auth if needed
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
         credentials: 'include',
         body: JSON.stringify({ 
