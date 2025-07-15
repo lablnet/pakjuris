@@ -166,6 +166,20 @@ All endpoints are prefixed with `/api`.
 
 ---
 
+## Interactive API Docs (Swagger)
+
+A live, interactive version of this API reference is available via **Swagger UI**:
+
+```text
+http://localhost:8000/api-docs
+```
+
+Open that URL after running the server (`pnpm dev` or `pnpm start`) to explore endpoints, schemas, and even execute requests directly from your browser.
+
+The docs are powered by [`swagger-ui-express`](https://www.npmjs.com/package/swagger-ui-express) and a handcrafted OpenAPI 3 specification defined in `src/swagger.ts`.
+
+---
+
 ## Project Structure (high-level)
 
 ```
