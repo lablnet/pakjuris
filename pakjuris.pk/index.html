@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PakJuris – Level Up Your Legal Knowledge</title>
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Motion / Animation library (AOS – Animate On Scroll) -->
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+
+    <!-- Meta tags for better sharing -->
+    <meta name="description" content="Gamified gateway to Pakistani legal knowledge – earn XP by starring, forking & contributing on GitHub." />
+    <meta property="og:title" content="PakJuris – Pakistani Legal Knowledge" />
+    <meta property="og:description" content="Level up your legal skills while helping the open-source community." />
+    <meta property="og:url" content="https://github.com/lablnet/pakjuris" />
+</head>
+
+<body class="bg-gradient-to-br from-green-50 to-blue-50 min-h-screen flex flex-col font-sans">
+    <!-- Hero Section -->
+    <header class="text-center py-16 px-4" data-aos="fade-down">
+        <h1 class="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent mb-6">
+            PakJuris
+        </h1>
+        <p class="text-lg md:text-xl text-gray-700 max-w-xl mx-auto">
+            Gamified gateway to Pakistani legal knowledge. Level up by visiting our GitHub repo!
+        </p>
+        <a href="https://github.com/lablnet/pakjuris" target="_blank" class="mt-10 inline-block bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-4 px-10 rounded-full shadow-lg transition hover:shadow-xl text-xl">
+        ⭐ Star on GitHub
+      </a>
+    </header>
+
+    <!-- How to Play / Gamification Steps -->
+    <section class="py-12 bg-white" data-aos="fade-up">
+        <div class="max-w-5xl mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-10">How to Play</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Step 1 -->
+                <div class="bg-gray-50 p-6 rounded-2xl shadow hover:shadow-md transition" data-aos="zoom-in" data-aos-delay="100">
+                    <div class="w-14 h-14 bg-green-100 text-green-600 flex items-center justify-center rounded-full text-2xl font-bold mb-4">
+                        1
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Fork</h3>
+                    <p class="text-gray-600">Fork the repo to unlock the first badge.</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="bg-gray-50 p-6 rounded-2xl shadow hover:shadow-md transition" data-aos="zoom-in" data-aos-delay="200">
+                    <div class="w-14 h-14 bg-blue-100 text-blue-600 flex items-center justify-center rounded-full text-2xl font-bold mb-4">
+                        2
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Star</h3>
+                    <p class="text-gray-600">Give us a ⭐ and earn 50 XP.</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="bg-gray-50 p-6 rounded-2xl shadow hover:shadow-md transition" data-aos="zoom-in" data-aos-delay="300">
+                    <div class="w-14 h-14 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full text-2xl font-bold mb-4">
+                        3
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Contribute</h3>
+                    <p class="text-gray-600">
+                        Open a pull request and see your name climb the leaderboard.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Project Overview -->
+    <section class="py-12 bg-gray-50" data-aos="fade-up">
+        <div class="max-w-5xl mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-8">What is PakJuris?</h2>
+            <p class="text-gray-700 text-lg mb-6">
+                PakJuris is an open-source AI assistant that makes Pakistani legal information searchable and understandable. It combines vector embeddings, retrieval-augmented generation, and a conversational interface to deliver answers with citations to official documents.
+            </p>
+
+            <div class="bg-white shadow rounded-xl p-4 md:p-8" data-aos="zoom-in">
+                <!-- Video Embed -->
+                <div class="mb-6">
+                    <div>
+                        <a href="https://www.loom.com/share/607094ee1d2b4335b02475851a410381">
+                            <p>Videos | Library | Loom - 15 July 2025 - Watch Video</p>
+                        </a>
+                        <a href="https://www.loom.com/share/607094ee1d2b4335b02475851a410381">
+                            <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/607094ee1d2b4335b02475851a410381-5886dce188c794cf-full-play.gif" alt="PakJuris demo thumbnail">
+                        </a>
+                    </div>
+                    <div style="position: relative; padding-bottom: 47.708333333333336%; height: 0;" class="mt-4">
+                        <iframe src="https://www.loom.com/embed/607094ee1d2b4335b02475851a410381?sid=f594f796-8e6f-45ba-b923-9fa8dbfaecb4" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
+                    </div>
+                </div>
+
+                <h3 class="text-2xl font-semibold mb-4">Key Features</h3>
+                <ul class="list-disc list-inside space-y-2 text-gray-700">
+                    <li>Automated scraping of official PDF laws from <em>pakistancode.gov.pk</em>.</li>
+                    <li>Vectorization using OpenAI <code>text-embedding-3-large</code> to capture semantic meaning.</li>
+                    <li>Fast semantic search via a scalable vector database.</li>
+                    <li>Retrieval-Augmented Generation with state-of-the-art LLMs (Gemini & OpenAI) for accurate answers.</li>
+                    <li>Modern React + TypeScript front-end with chat UI and PDF preview.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center py-8 text-gray-600">
+        Built with ❤️ by
+        <a href="https://github.com/lablnet" target="_blank" class="underline hover:text-blue-600">Lablnet</a
+      >. All rights reserved.
+    </footer>
+
+    <!-- AOS initialisation -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+      AOS.init({ once: true });
+    </script>
+  </body>
+</html>
