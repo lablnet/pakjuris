@@ -15,7 +15,7 @@
     "license": "ISC",
     "dependencies": {
         "@azure/openai": "^2.0.0",
-        "@langchain/core": "^0.3.43",
+        "@langchain/core": "^0.3.80",
         "@langchain/google-genai": "^0.2.2",
         "@langchain/mongodb": "^0.1.0",
         "@langchain/textsplitters": "^0.1.0",
