@@ -29,7 +29,7 @@
         "openai": "^4.91.1",
         "pdf-parse": "^1.1.1",
         "pdfjs-dist": "3.11.174",
-        "playwright": "^1.48.2"
+        "playwright": "^1.55.1"
     },
     "engines": {
         "node": ">=16"
