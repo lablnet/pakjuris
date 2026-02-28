@@ -11,7 +11,7 @@
     },
     "dependencies": {
         "@microsoft/fetch-event-source": "^2.0.1",
-        "axios": "^1.8.4",
+        "axios": "^1.13.5",
         "clsx": "^2.1.1",
         "eventsource-polyfill": "^0.9.6",
         "firebase": "^11.6.0",
